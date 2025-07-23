@@ -1,0 +1,32 @@
+{
+  "name": "admin-panel",
+  "version": "1.0.0",
+  "description": "Admin Panel for Bitcoin Mining App",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "keywords": [
+    "admin",
+    "dashboard",
+    "nodejs",
+    "express",
+    "ejs"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.21.2",
+    "ejs": "^3.1.9",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "axios": "^1.10.0",
+    "express-session": "^1.17.3",
+    "bcryptjs": "^2.4.3",
+    "helmet": "^7.0.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}
