@@ -1,5 +1,6 @@
-const express = require('express');
-const axios = require('axios');
+import express from 'express';
+import axios from 'axios';
+
 const router = express.Router();
 
 // Middleware to check if admin is logged in for API routes
@@ -86,4 +87,4 @@ router.put('/support/:id/status', requireAuth, async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

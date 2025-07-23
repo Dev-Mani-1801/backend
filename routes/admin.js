@@ -1,6 +1,7 @@
-const express = require('express');
-const bcrypt = require('bcryptjs');
-const axios = require('axios');
+import express from 'express';
+import bcrypt from 'bcryptjs';
+import axios from 'axios';
+
 const router = express.Router();
 
 // Middleware to check if admin is logged in
@@ -54,11 +55,15 @@ router.get('/dashboard', requireAuth, async (req, res) => {
     // Fetch dashboard data from backend API
     const response = await axios.get(`${process.env.BACKEND_API_URL}/admin/dashboard`);
     const dashboardData = response.data.data;
+
+    const collections = await mongoose.connection.db.listCollections().toArray();
+    const tableNames = collections.map(col => col.name);
     
     res.render('dashboard', {
       title: 'Dashboard',
       user: req.session.adminUser,
-      data: dashboardData
+      data: dashboardData,
+      tables: tableNames
     });
   } catch (error) {
     console.error('Dashboard error:', error.message);
@@ -211,4 +216,4 @@ router.get('/logout', (req, res) => {
   });
 });
 
-module.exports = router;
+export default router;

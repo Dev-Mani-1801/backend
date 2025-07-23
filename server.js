@@ -1,14 +1,23 @@
-const express = require('express');
-const path = require('path');
-const session = require('express-session');
-const cors = require('cors');
-const helmet = require('helmet');
-const dotenv = require('dotenv');
+import express from 'express';
+import path from 'path';
+import session from 'express-session';
+import cors from 'cors';
+import helmet from 'helmet';
+import dotenv from 'dotenv';
+import connectDB from './config/database.js';
+import { fileURLToPath } from 'url';
+import adminRoutes from './routes/admin.js';
+import apiRoutes from './routes/api.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Load env vars
 dotenv.config();
 
 const app = express();
+
+connectDB();
 
 // Security middleware
 app.use(helmet({
@@ -41,8 +50,8 @@ app.set('views', path.join(__dirname, 'views'));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Routes
-app.use('/admin', require('./routes/admin'));
-app.use('/api', require('./routes/api'));
+app.use('/admin', adminRoutes);
+app.use('/api', apiRoutes);
 
 // Handle 404
 app.use('*', (req, res) => {
@@ -55,4 +64,4 @@ app.listen(PORT, () => {
   console.log(`Admin Panel running on port ${PORT}`);
 });
 
-module.exports = app;
+export default app;
