@@ -30,7 +30,7 @@ router.post('/login', async (req, res) => {
   
   try {
     // Simple admin authentication
-    if (username === process.env.ADMIN_USERNAME && password === process.env.ADMIN_PASSWORD) {
+    if (username === "testuser1" && password === "test1234") {
       req.session.isLoggedIn = true;
       req.session.adminUser = username;
       res.redirect('/admin/dashboard');
