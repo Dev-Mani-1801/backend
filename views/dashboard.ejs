@@ -110,7 +110,7 @@
                                 New Users
                                 <i class="fas fa-users cards-icon"></i>
                             </h3>
-                            <p class="stat-value">$<%= data.newUsers %></p>
+                            <p class="stat-value"><%= usersCount %></p>
                             <span class="stat-change positive">+8.2% since last week</span>
                         </div>
                     </div>
@@ -243,6 +243,13 @@
                 }
             }
         });
+    </script>
+
+    <script>
+        const tables = <%- JSON.stringify(tables) %>;
+
+        console.log("Collections in DB:", tables);
+
     </script>
 </body>
 </html>

@@ -1,6 +1,7 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
 import axios from 'axios';
+import mongoose from 'mongoose';
 
 const router = express.Router();
 
@@ -50,20 +51,44 @@ router.get('/', requireAuth, async (req, res) => {
   res.redirect('/admin/dashboard');
 });
 
-router.get('/dashboard', requireAuth, async (req, res) => {
+router.get('/dashboard', async (req, res) => {
   try {
     // Fetch dashboard data from backend API
-    const response = await axios.get(`${process.env.BACKEND_API_URL}/admin/dashboard`);
-    const dashboardData = response.data.data;
+    // const response = await axios.get(`${process.env.BACKEND_API_URL}/admin/dashboard`);
+    // const dashboardData = response.data.data;
+
+    const defaultData = {
+      totalRevenue: 12345.67,
+      newUsers: 456,
+      transactions: 12,
+      supportTickets: 3,
+      recentTransactions: []
+    };
+
+    var usersCount = 0;
 
     const collections = await mongoose.connection.db.listCollections().toArray();
     const tableNames = collections.map(col => col.name);
+
+    if (tableNames.includes('users')) {
+      const usersData = await mongoose.connection.db.collection('users').find({}).toArray();
+
+      const usersCollection = mongoose.connection.db.collection('users');
+      usersCount = await usersCollection.countDocuments();
+
+      // console.log("Users: ", usersCount);
+
+    } else {
+      usersCount = 0
+      console.warn('No "users" collection found.');
+    }
     
     res.render('dashboard', {
       title: 'Dashboard',
       user: req.session.adminUser,
-      data: dashboardData,
-      tables: tableNames
+      data: defaultData,
+      tables: tableNames,
+      usersCount: usersCount
     });
   } catch (error) {
     console.error('Dashboard error:', error.message);
@@ -79,7 +104,9 @@ router.get('/dashboard', requireAuth, async (req, res) => {
     res.render('dashboard', {
       title: 'Dashboard',
       user: req.session.adminUser,
-      data: defaultData
+      data: defaultData,
+      tables: [],
+      usersCount: 0
     });
   }
 });
