@@ -2,6 +2,7 @@ import express from 'express';
 import bcrypt from 'bcryptjs';
 import axios from 'axios';
 import mongoose from 'mongoose';
+import users_count_comparision from '../helpers/db_actions.js';
 
 const router = express.Router();
 
@@ -65,6 +66,8 @@ router.get('/dashboard', async (req, res) => {
       recentTransactions: []
     };
 
+    const users_diff = await users_count_comparision();
+
     var usersCount = 0;
 
     const collections = await mongoose.connection.db.listCollections().toArray();
@@ -88,7 +91,8 @@ router.get('/dashboard', async (req, res) => {
       user: req.session.adminUser,
       data: defaultData,
       tables: tableNames,
-      usersCount: usersCount
+      usersCount: usersCount,
+      users_diff
     });
   } catch (error) {
     console.error('Dashboard error:', error.message);
@@ -100,13 +104,16 @@ router.get('/dashboard', async (req, res) => {
       supportTickets: 3,
       recentTransactions: []
     };
+
+    const users_diff = 0
     
     res.render('dashboard', {
       title: 'Dashboard',
       user: req.session.adminUser,
       data: defaultData,
       tables: [],
-      usersCount: 0
+      usersCount: 0,
+      users_diff
     });
   }
 });

@@ -16,11 +16,11 @@ https://drive.google.com/file/d/1UiZrkaVIJlFqQYSgUSJBUt3UzplTcpMo/view?usp=shari
 Users Table Format
 
 {
-    _id: new ObjectId('687e090a4389334010742001'),
+    _id: new ObjectId(''),
     name: 'Telegram Demo User',
     email: 'telegram.demo@example.com',
-    password: '$2a$10$rZY/Hpqu.0l3x/EK9FrkROpmgPe2tf44USmBAZc4xc6ZSUm52B5J6',
-    photo: 'https://via.placeholder.com/150/0088cc/ffffff?text=TG',
+    password: '',
+    photo: '',
     isActive: true,
     emailVerified: true,
     createdAt: 2025-07-21T09:31:54.112Z,
