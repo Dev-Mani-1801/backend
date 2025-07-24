@@ -18,7 +18,7 @@ dotenv.config();
 
 const app = express();
 
-connectDB();
+await connectDB();
 
 await tables_check();
 

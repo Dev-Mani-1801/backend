@@ -13,7 +13,8 @@ async function ensureTransactionsCollection() {
       method_crypto: false,
       method_bank_transfer: false,
       method_payment_gateway: false,
-      transaction_id: 'init-transaction-id'
+      transaction_id: 'init-transaction-id',
+      plan_id: new mongoose.Types.ObjectId(),
     });
 
     try {
