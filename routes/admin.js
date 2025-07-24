@@ -140,8 +140,6 @@ router.get('/subscriptionplans', async (req, res) => {
     .limit(limit)
     .toArray();
 
-  console.log("Plans", plans);
-
   const total = await plansCollection.countDocuments(filter);
 
   if (req.headers['x-requested-with'] === 'XMLHttpRequest') {

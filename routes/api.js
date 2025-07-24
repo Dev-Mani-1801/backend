@@ -3,6 +3,7 @@ import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
 import SubscriptionPlan from '../models/SubscriptionPlan.js';
 import Transaction from '../models/SubscriptionPlan.js';
+import mongoose from 'mongoose';
 
 const router = express.Router();
 
@@ -128,6 +129,32 @@ router.delete('/subscriptionplans/:id', async (req, res) => {
   } catch (err) {
     console.error('Error deleting plan:', err);
     res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+router.delete('/help/:id/delete', async (req, res) => {
+  try {
+    const ticketsCollection = mongoose.connection.db.collection('supporttickets');
+    const id = new mongoose.Types.ObjectId(req.params.id);
+    await ticketsCollection.deleteOne({ _id: id });
+    res.sendStatus(200);
+  } catch (err) {
+    console.error('Error deleting ticket:', err);
+    res.sendStatus(500);
+  }
+});
+
+router.post('/help/reply', async (req, res) => {
+  const { email, message } = req.body;
+
+  try {
+    
+    console.log(`Email sent to ${email} with message: ${message}`);
+
+    res.sendStatus(200);
+  } catch (err) {
+    console.error('Failed to send email:', err);
+    res.sendStatus(500);
   }
 });
 
