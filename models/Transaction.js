@@ -39,8 +39,9 @@ const transactionSchema = new mongoose.Schema({
     unique: true
   },
   plan_id: {
-    type: String,
-    default: null
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'subscriptionplans',
+    required: true
   },
   date_created: {
     type: Date,
