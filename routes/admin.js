@@ -118,6 +118,44 @@ router.get('/dashboard', async (req, res) => {
   }
 });
 
+router.get('/subscriptionplans', async (req, res) => {
+  const page = parseInt(req.query.page) || 1;
+  const limit = 10;
+  const skip = (page - 1) * limit;
+  const query = req.query.q?.trim() || '';
+
+  const plansCollection = mongoose.connection.db.collection('subscription_plans');
+
+  const filter = query
+    ? {
+        name: { $regex: query, $options: 'i' },
+      }
+    : {};
+
+  const plans = await plansCollection
+    .find(filter)
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit)
+    .toArray();
+
+  const total = await plansCollection.countDocuments(filter);
+
+  if (req.headers['x-requested-with'] === 'XMLHttpRequest') {
+    return res.json({ plans });
+  }
+
+  res.render('subscriptionplans', {
+    title: 'Subscription Plans',
+    user: req.user?.name || 'Admin',
+    plans,
+    query,
+    page,
+    limit,
+    total,
+  });
+});
+
 // Users management
 router.get('/users', requireAuth, async (req, res) => {
   const page = parseInt(req.query.page) || 1;

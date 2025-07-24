@@ -1,0 +1,108 @@
+<%- include('partials/header', { title }) %>
+<%- include('partials/sidebar', { user }) %>
+
+<div class="main-content">
+
+    <div id="loading" style="display: none;">Searching...</div>
+
+    <div class="card-container">
+        <div class="card">
+            <div class="card-header">
+                <h2>Subscription Plans</h2>
+                <input
+                    type="text"
+                    id="planSearch"
+                    placeholder="Search plans..."
+                    value="<%= query || '' %>"
+                    style="padding: 8px; border-radius: 4px; border: 1px solid #ccc;"
+                />
+            </div>
+
+            <div class="table-responsive" id="plansTableContainer">
+                <table class="user-table" id="plansTable">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Name</th>
+                            <th>Hashrate</th>
+                            <th>Duration (Months)</th>
+                            <th>Maintenance Cost</th>
+                            <th>Plan Cost</th>
+                        </tr>
+                    </thead>
+                    <tbody id="plansTbody">
+                        <% plans.forEach((plan, index) => { %>
+                            <tr>
+                                <td><%= (page - 1) * limit + index + 1 %></td>
+                                <td><%= plan.name %></td>
+                                <td><%= plan.hashrate %></td>
+                                <td><%= plan.duration %></td>
+                                <td>$<%= plan.maintenance_cost %></td>
+                                <td>$<%= plan.plan_cost %></td>
+                            </tr>
+                        <% }) %>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            <div class="pagination">
+                <% if (page > 1) { %>
+                    <a href="?page=<%= page - 1 %><%= query ? '&q=' + encodeURIComponent(query) : '' %>">&laquo; Prev</a>
+                <% } %>
+                <span>Page <%= page %></span>
+                <% if (plans.length === limit) { %>
+                    <a href="?page=<%= page + 1 %><%= query ? '&q=' + encodeURIComponent(query) : '' %>">Next &raquo;</a>
+                <% } %>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const searchInput = document.getElementById('planSearch');
+        const plansTbody = document.getElementById('plansTbody');
+
+        let searchTimeout;
+        searchInput.addEventListener('input', () => {
+            clearTimeout(searchTimeout);
+
+            searchTimeout = setTimeout(async () => {
+                const query = searchInput.value.trim();
+                document.getElementById('loading').style.display = 'block';
+
+                try {
+                    const response = await fetch(`/admin/subscriptionplans?q=${encodeURIComponent(query)}&page=1`, {
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    });
+
+                    const data = await response.json();
+                    plansTbody.innerHTML = '';
+
+                    if (data.plans.length === 0) {
+                        plansTbody.innerHTML = '<tr><td colspan="6">No subscription plans found</td></tr>';
+                        return;
+                    }
+
+                    data.plans.forEach((plan, index) => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${index + 1}</td>
+                            <td>${plan.name}</td>
+                            <td>${plan.hashrate}</td>
+                            <td>${plan.duration}</td>
+                            <td>$${plan.maintenance_cost}</td>
+                            <td>$${plan.plan_cost}</td>
+                        `;
+                        plansTbody.appendChild(row);
+                    });
+
+                } catch (err) {
+                    console.error('Search failed:', err);
+                } finally {
+                    document.getElementById('loading').style.display = 'none';
+                }
+            }, 300);
+        });
+    </script>
+
+<%- include('partials/footer') %>
