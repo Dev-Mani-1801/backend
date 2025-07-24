@@ -3,9 +3,14 @@ import bcrypt from 'bcryptjs';
 import axios from 'axios';
 import mongoose from 'mongoose';
 import dbActions from '../helpers/db_actions.js';
+import dbHelpers from '../helpers/helper_functions.js';
 
-const { users_count_comparision, transactions_count_comparision } = dbActions;
-
+const { users_count_comparision, transactions_count_comparision, supportTickets_count_comparision } = dbActions;
+const {
+    total_users,
+    total_transactions,
+    TotalSupportTickets
+} = dbHelpers
 const router = express.Router();
 
 // Middleware to check if admin is logged in
@@ -56,9 +61,6 @@ router.get('/', requireAuth, async (req, res) => {
 
 router.get('/dashboard', async (req, res) => {
   try {
-    // Fetch dashboard data from backend API
-    // const response = await axios.get(`${process.env.BACKEND_API_URL}/admin/dashboard`);
-    // const dashboardData = response.data.data;
 
     const defaultData = {
       totalRevenue: 12345.67,
@@ -70,39 +72,22 @@ router.get('/dashboard', async (req, res) => {
 
     const users_diff = await users_count_comparision();
     const transactions_diff = await transactions_count_comparision();
-
-    var usersCount = 0;
-
-    const collections = await mongoose.connection.db.listCollections().toArray();
-    const tableNames = collections.map(col => col.name);
-
-    // console.log("TABLES: ", tableNames)
-
-    if (tableNames.includes('users')) {
-      const usersData = await mongoose.connection.db.collection('users').find({}).toArray();
-
-      const usersCollection = mongoose.connection.db.collection('users');
-      usersCount = await usersCollection.countDocuments();
-
-      // console.log("Users: ", usersCount);
-
-    } else {
-      usersCount = 0
-      console.warn('No "users" collection found.');
-    }
-
-    const TransactionsCollection = mongoose.connection.db.collection('transactions');
-    const TransactionsCount = await TransactionsCollection.countDocuments();
+    const supportTicketsDiff = await supportTickets_count_comparision();
+    
+    const usersCount = await total_users();
+    const TransactionsCount = await total_transactions();
+    const supportTicketsCount = await TotalSupportTickets();
     
     res.render('dashboard', {
       title: 'Dashboard',
       user: req.session.adminUser,
       data: defaultData,
-      tables: tableNames,
       usersCount: usersCount,
       users_diff,
       TransactionsCount,
-      transactions_diff
+      transactions_diff,
+      supportTicketsCount,
+      supportTicketsDiff
     });
   } catch (error) {
     console.error('Dashboard error:', error.message);
@@ -118,6 +103,8 @@ router.get('/dashboard', async (req, res) => {
     const users_diff = 0
     const TransactionsCount = 11
     const transactions_diff = 0
+    const supportTicketsDiff = 0
+    const supportTicketsCount = 0
     
     res.render('dashboard', {
       title: 'Dashboard',
