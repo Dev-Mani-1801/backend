@@ -33,7 +33,7 @@ router.post('/login', async (req, res) => {
   
   try {
     // Simple admin authentication
-    if (username === "testuser1" && password === "test1234") {
+    if (username === process.env.ADMIN_USERNAME && password === process.env.ADMIN_PASSWORD) {
       req.session.isLoggedIn = true;
       req.session.adminUser = username;
       res.redirect('/admin/dashboard');
@@ -119,25 +119,50 @@ router.get('/dashboard', async (req, res) => {
 });
 
 // Users management
-router.get('/users', requireAuth, async (req, res) => {
-  try {
-    const response = await axios.get(`${process.env.BACKEND_API_URL}/admin/users`);
-    const users = response.data.data;
-    
-    res.render('users', {
-      title: 'Users Management',
-      user: req.session.adminUser,
-      users: users
-    });
-  } catch (error) {
-    console.error('Users fetch error:', error.message);
-    res.render('users', {
-      title: 'Users Management',
-      user: req.session.adminUser,
-      users: [],
-      error: 'Failed to fetch users'
-    });
+router.get('/users', async (req, res) => {
+  const page = parseInt(req.query.page) || 1;
+  const limit = 10;
+  const skip = (page - 1) * limit;
+  const searchQuery = req.query.q?.trim() || '';
+
+  const usersCollection = mongoose.connection.db.collection('users');
+
+  const filter = searchQuery
+    ? {
+        $or: [
+          { name: { $regex: searchQuery, $options: 'i' } },
+          { email: { $regex: searchQuery, $options: 'i' } }
+        ]
+      }
+    : {};
+
+  const [users, total] = await Promise.all([
+    usersCollection
+      .find(filter)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .toArray(),
+    usersCollection.countDocuments(filter)
+  ]);
+
+  const totalPages = Math.ceil(total / limit);
+
+  // If AJAX request, return JSON
+  if (req.xhr) {
+    return res.json({ users, page, totalPages });
   }
+
+  // Full page render
+  res.render('users', {
+    title: 'Users',
+    user: req.user?.name || 'Admin',
+    users,
+    page,
+    limit,
+    totalPages,
+    searchQuery
+  });
 });
 
 // Help route

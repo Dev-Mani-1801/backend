@@ -1,0 +1,54 @@
+<!-- Sidebar -->
+<aside class="sidebar">
+  <div class="sidebar-header">
+    <h3>Admin Panel</h3>
+  </div>
+  <nav class="sidebar-nav">
+    <ul>
+      <li class="<%= title === 'Dashboard' ? 'active' : '' %>">
+        <a href="/admin/dashboard"><i class="fas fa-tachometer-alt"></i> <span>Dashboard</span></a>
+      </li>
+      <li class="<%= title === 'Users' ? 'active' : '' %>">
+        <a href="/admin/users"><i class="fas fa-users"></i> <span>Users</span></a>
+      </li>
+      <li>
+        <a href="/admin/wallet"><i class="fas fa-wallet"></i> <span>Wallet</span></a>
+      </li>
+      <li>
+        <a href="/admin/profile"><i class="fas fa-user"></i> <span>Profile</span></a>
+      </li>
+      <li>
+        <a href="/admin/settings"><i class="fas fa-cog"></i> <span>Settings</span></a>
+      </li>
+      <li>
+        <a href="/admin/help"><i class="fas fa-question-circle"></i> <span>Help</span></a>
+      </li>
+      <li>
+        <a href="/admin/withdraw"><i class="fas fa-money-bill-wave"></i> <span>Withdraw</span></a>
+      </li>
+      <li>
+        <a href="/admin/deposit"><i class="fas fa-plus-circle"></i> <span>Deposit</span></a>
+      </li>
+    </ul>
+  </nav>
+  <div class="sidebar-footer">
+    <a href="/admin/logout" class="logout-btn">
+      <i class="fas fa-sign-out-alt"></i> Log Out
+    </a>
+  </div>
+</aside>
+
+<!-- Main Content -->
+<div class="main-content">
+  <header class="header">
+    <div class="header-left">
+      <h1><%= title %></h1>
+    </div>
+    <div class="header-right">
+      <div class="user-info">
+        <span>Hello, <%= user %>!</span>
+        <i class="fas fa-user-circle user-profile-icon"></i>
+      </div>
+    </div>
+  </header>
+  <main class="page-content">
