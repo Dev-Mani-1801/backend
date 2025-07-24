@@ -2,7 +2,9 @@ import express from 'express';
 import bcrypt from 'bcryptjs';
 import axios from 'axios';
 import mongoose from 'mongoose';
-import users_count_comparision from '../helpers/db_actions.js';
+import dbActions from '../helpers/db_actions.js';
+
+const { users_count_comparision, transactions_count_comparision } = dbActions;
 
 const router = express.Router();
 
@@ -67,6 +69,7 @@ router.get('/dashboard', async (req, res) => {
     };
 
     const users_diff = await users_count_comparision();
+    const transactions_diff = await transactions_count_comparision();
 
     var usersCount = 0;
 
@@ -87,6 +90,9 @@ router.get('/dashboard', async (req, res) => {
       usersCount = 0
       console.warn('No "users" collection found.');
     }
+
+    const TransactionsCollection = mongoose.connection.db.collection('transactions');
+    const TransactionsCount = await TransactionsCollection.countDocuments();
     
     res.render('dashboard', {
       title: 'Dashboard',
@@ -94,7 +100,9 @@ router.get('/dashboard', async (req, res) => {
       data: defaultData,
       tables: tableNames,
       usersCount: usersCount,
-      users_diff
+      users_diff,
+      TransactionsCount,
+      transactions_diff
     });
   } catch (error) {
     console.error('Dashboard error:', error.message);
@@ -108,6 +116,8 @@ router.get('/dashboard', async (req, res) => {
     };
 
     const users_diff = 0
+    const TransactionsCount = 11
+    const transactions_diff = 0
     
     res.render('dashboard', {
       title: 'Dashboard',
@@ -115,7 +125,9 @@ router.get('/dashboard', async (req, res) => {
       data: defaultData,
       tables: [],
       usersCount: 0,
-      users_diff
+      users_diff,
+      TransactionsCount,
+      transactions_diff
     });
   }
 });
