@@ -119,7 +119,7 @@ router.get('/dashboard', async (req, res) => {
 });
 
 // Users management
-router.get('/users', async (req, res) => {
+router.get('/users', requireAuth, async (req, res) => {
   const page = parseInt(req.query.page) || 1;
   const limit = 10;
   const skip = (page - 1) * limit;

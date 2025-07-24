@@ -8,6 +8,7 @@ import connectDB from './config/database.js';
 import { fileURLToPath } from 'url';
 import adminRoutes from './routes/admin.js';
 import apiRoutes from './routes/api.js';
+import tables_check from './helpers/create_tables.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -18,6 +19,8 @@ dotenv.config();
 const app = express();
 
 connectDB();
+
+await tables_check();
 
 // Security middleware
 app.use(helmet({
