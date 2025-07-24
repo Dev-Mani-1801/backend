@@ -1,303 +1,108 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Help - DashPro Admin</title>
-    <link rel="stylesheet" href="/css/style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <style>
-        .help-container {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 12px;
-            padding: 24px;
-            margin: 20px 0;
-        }
+<%- include('partials/header', { title: 'Support Tickets' }) %>
+<%- include('partials/sidebar', { user }) %>
 
-        .help-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 24px;
-        }
+<div class="main-content">
+    <div id="loading" style="display: none;">Searching...</div>
 
-        .help-header h3 {
-            color: #ffffff;
-            font-size: 18px;
-            font-weight: 600;
-            margin: 0;
-        }
-
-        .btn-refresh {
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            color: #ffffff;
-            padding: 8px 16px;
-            border-radius: 8px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 14px;
-            transition: all 0.3s ease;
-        }
-
-        .btn-refresh:hover {
-            background: rgba(255, 255, 255, 0.15);
-        }
-
-        .help-table {
-            overflow-x: auto;
-        }
-
-        .help-table table {
-            width: 100%;
-            border-collapse: collapse;
-            background: transparent;
-        }
-
-        .help-table th {
-            background: rgba(255, 255, 255, 0.05);
-            color: #ffffff;
-            padding: 16px;
-            text-align: left;
-            font-weight: 500;
-            font-size: 14px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .help-table td {
-            padding: 16px;
-            color: #ffffff;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-            font-size: 14px;
-        }
-
-        .help-table tr:hover {
-            background: rgba(255, 255, 255, 0.02);
-        }
-
-        .complaint-name {
-            font-weight: 500;
-        }
-
-        .action-buttons {
-            display: flex;
-            gap: 8px;
-        }
-
-        .btn-action {
-            width: 32px;
-            height: 32px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s ease;
-        }
-
-        .btn-action.email {
-            background: #4CAF50;
-            color: white;
-        }
-
-        .btn-action.email:hover {
-            background: #45a049;
-        }
-
-        .btn-action.delete {
-            background: #f44336;
-            color: white;
-        }
-
-        .btn-action.delete:hover {
-            background: #da190b;
-        }
-
-        .no-data {
-            text-align: center;
-            color: #888;
-            font-style: italic;
-            padding: 40px;
-        }
-    </style>
-</head>
-<body>
-    <div class="admin-container">
-        <!-- Sidebar -->
-        <aside class="sidebar">
-            <div class="sidebar-header">
-                <h2>DashPro</h2>
+    <div class="card-container">
+        <div class="cards">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h2>Support Tickets</h2>
+                <input
+                    type="text"
+                    id="ticketSearch"
+                    class="form-control"
+                    placeholder="Search tickets..."
+                    value="<%= searchQuery || '' %>"
+                    style="max-width: 250px;"
+                />
             </div>
-            <nav class="sidebar-nav">
-                <ul>
-                    <li>
-                        <a href="/admin/dashboard">
-                            <i class="fas fa-tachometer-alt"></i>
-                            <span>Dashboard</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="/admin/wallet">
-                            <i class="fas fa-wallet"></i>
-                            <span>Wallet</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="/admin/profile">
-                            <i class="fas fa-user"></i>
-                            <span>Profile</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="/admin/settings">
-                            <i class="fas fa-cog"></i>
-                            <span>Settings</span>
-                        </a>
-                    </li>
-                    <li class="active">
-                        <a href="/admin/help">
-                            <i class="fas fa-question-circle"></i>
-                            <span>Help</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="/admin/withdraw">
-                            <i class="fas fa-money-bill-wave"></i>
-                            <span>Withdraw</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="/admin/deposit">
-                            <i class="fas fa-plus-circle"></i>
-                            <span>Deposit</span>
-                        </a>
-                    </li>
-                </ul>
-            </nav>
-            <div class="sidebar-footer">
-                <a href="/admin/logout" class="logout-btn">
-                    <i class="fas fa-sign-out-alt"></i>
-                    Log Out
-                </a>
+
+            <div class="table-responsive data-table" id="ticketsTableContainer">
+                <table class="table table-dark table-striped table-hover table-bordered align-middle" id="ticketsTable">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>User Name</th>
+                            <th>Email</th>
+                            <th>Message</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ticketsTbody">
+                        <% tickets.forEach((ticket, index) => { %>
+                            <tr>
+                                <td><%= (page - 1) * limit + index + 1 %></td>
+                                <td><%= ticket.name %></td>
+                                <td><%= ticket.email %></td>
+                                <td><%= ticket.message %></td>
+                            </tr>
+                        <% }) %>
+                    </tbody>
+                </table>
             </div>
-        </aside>
 
-        <!-- Main Content -->
-        <main class="main-content">
-            <!-- Header -->
-            <header class="header">
-                <div class="header-left">
-                    <h1>Help</h1>
-                    <p>Check and resolve user Tickets</p>
-                </div>
-                <div class="header-right">
-                    <div class="search-box">
-                        <i class="fas fa-search"></i>
-                        <input type="text" placeholder="Search">
-                    </div>
-                </div>
-            </header>
+            <!-- Pagination -->
+            <div class="pagination mt-3 d-flex align-items-center">
+                <% if (page > 1) { %>
+                    <a href="?page=<%= page - 1 %><%= searchQuery ? '&q=' + encodeURIComponent(searchQuery) : '' %>" class="btn btn-outline-primary me-2">Prev</a>
+                <% } %>
 
-            <!-- Help Content -->
-            <div class="content">
-                <div class="help-container">
-                    <div class="help-header">
-                        <h3>Support Tickets</h3>
-                        <div class="help-actions">
-                            <button class="btn-refresh">
-                                <i class="fas fa-sync-alt"></i>
-                                Refresh
-                            </button>
-                        </div>
-                    </div>
+                <span class="me-2">Page <%= page %></span>
 
-                    <div class="help-table">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Complaint Name</th>
-                                    <th>User</th>
-                                    <th>Date</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td class="complaint-name">Unable to renew Subscription</td>
-                                    <td>Colin</td>
-                                    <td>13/4/24</td>
-                                    <td>
-                                        <div class="action-buttons">
-                                            <button class="btn-action email" title="Send Email">
-                                                <i class="fas fa-envelope"></i>
-                                            </button>
-                                            <button class="btn-action delete" title="Delete">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td class="complaint-name">Didn't Receive Custom Quote</td>
-                                    <td>Andrew</td>
-                                    <td>14/5/24</td>
-                                    <td>
-                                        <div class="action-buttons">
-                                            <button class="btn-action email" title="Send Email">
-                                                <i class="fas fa-envelope"></i>
-                                            </button>
-                                            <button class="btn-action delete" title="Delete">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td class="complaint-name">Payment still pending</td>
-                                    <td>Steve</td>
-                                    <td>20/6/24</td>
-                                    <td>
-                                        <div class="action-buttons">
-                                            <button class="btn-action email" title="Send Email">
-                                                <i class="fas fa-envelope"></i>
-                                            </button>
-                                            <button class="btn-action delete" title="Delete">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td class="complaint-name">Query regarding Withdraw</td>
-                                    <td>Mia</td>
-                                    <td>22/6/24</td>
-                                    <td>
-                                        <div class="action-buttons">
-                                            <button class="btn-action email" title="Send Email">
-                                                <i class="fas fa-envelope"></i>
-                                            </button>
-                                            <button class="btn-action delete" title="Delete">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+                <% if (tickets.length === limit) { %>
+                    <a href="?page=<%= page + 1 %><%= searchQuery ? '&q=' + encodeURIComponent(searchQuery) : '' %>" class="btn btn-outline-primary ms-2">Next</a>
+                <% } %>
             </div>
-        </main>
+        </div>
     </div>
 
+    <!-- Live Search Script -->
     <script>
-        // Add any JavaScript functionality here
-        document.querySelector('.btn-refresh').addEventListener('click', function() {
-            location.reload();
+        const searchInput = document.getElementById('ticketSearch');
+        const ticketsTbody = document.getElementById('ticketsTbody');
+
+        let searchTimeout;
+        searchInput.addEventListener('input', () => {
+            clearTimeout(searchTimeout);
+
+            searchTimeout = setTimeout(async () => {
+                const query = searchInput.value.trim();
+
+                try {
+                    const response = await fetch(`/admin/help?q=${encodeURIComponent(query)}&page=1`, {
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    });
+
+                    const data = await response.json();
+                    ticketsTbody.innerHTML = '';
+
+                    if (data.tickets.length === 0) {
+                        ticketsTbody.innerHTML = '<tr><td colspan="4">No tickets found</td></tr>';
+                        return;
+                    }
+
+                    data.tickets.forEach((ticket, index) => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${index + 1}</td>
+                            <td>${ticket.name}</td>
+                            <td>${ticket.email}</td>
+                            <td>${ticket.message}</td>
+                        `;
+                        ticketsTbody.appendChild(row);
+                    });
+
+                } catch (err) {
+                    console.error('Search failed:', err);
+                }
+            }, 300);
         });
     </script>
-</body>
-</html>
+
+    <script>
+        const loading = document.getElementById('loading');
+        loading.style.display = 'block';
+        loading.style.display = 'none';
+    </script>
+
+<%- include('partials/footer') %>

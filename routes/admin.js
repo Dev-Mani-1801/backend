@@ -207,11 +207,49 @@ router.get('/users', requireAuth, async (req, res) => {
 });
 
 // Help route
-router.get('/help', requireAuth, (req, res) => {
-  res.render('help', {
-    title: 'Help & Support',
-    user: req.session.adminUser
-  });
+router.get('/help', async (req, res) => {
+  try {
+    const query = req.query.q || '';
+    const page = parseInt(req.query.page) || 1;
+    const limit = 10;
+    const skip = (page - 1) * limit;
+
+    const ticketsCollection = mongoose.connection.db.collection('supporttickets');
+
+    const filter = query
+      ? {
+          $or: [
+            { name: { $regex: query, $options: 'i' } },
+            { email: { $regex: query, $options: 'i' } },
+            { message: { $regex: query, $options: 'i' } },
+          ],
+        }
+      : {};
+
+    const tickets = await ticketsCollection
+      .find(filter)
+      .sort({ _id: -1 }) // latest first
+      .skip(skip)
+      .limit(limit)
+      .toArray();
+
+    if (req.headers['x-requested-with'] === 'XMLHttpRequest') {
+      return res.json({ tickets });
+    }
+
+    // Initial full page render
+    res.render('help', {
+      title: 'Support Tickets',
+      user: req.user?.name || 'Admin',
+      tickets,
+      searchQuery: query,
+      page,
+      limit,
+    });
+  } catch (error) {
+    console.error('Error loading help tickets:', error);
+    res.status(500).send('Internal Server Error');
+  }
 });
 
 // Deposit route

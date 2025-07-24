@@ -62,7 +62,7 @@ async function ensureSupportTicketCollection() {
   const collections = await mongoose.connection.db.listCollections().toArray();
   const collectionNames = collections.map(col => col.name);
 
-  if (!collectionNames.includes('SupportTicket')) {
+  if (!collectionNames.includes('supporttickets')) {
     try {
       // Create dummy plan and delete it to trigger collection creation
       const dummy = new SupportTicket({
