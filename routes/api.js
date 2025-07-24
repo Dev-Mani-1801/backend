@@ -114,4 +114,21 @@ router.post('/subscriptionplans/create', async (req, res) => {
   }
 });
 
+router.delete('/subscriptionplans/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const result = await SubscriptionPlan.findOneAndDelete({ id });
+
+    if (!result) {
+      return res.status(404).json({ error: 'Plan not found' });
+    }
+
+    res.status(200).json({ message: 'Plan deleted' });
+  } catch (err) {
+    console.error('Error deleting plan:', err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
 export default router;

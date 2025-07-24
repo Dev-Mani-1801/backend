@@ -72,30 +72,34 @@
             </div>
 
             <div class="table-responsive data-table" id="plansTableContainer">
-            <table class="table table-striped table-hover table-bordered align-middle">
-                <thead class="table-dark">
-                <tr>
-                    <th>#</th>
-                    <th>Name</th>
-                    <th>Hashrate</th>
-                    <th>Duration (Months)</th>
-                    <th>Maintenance Cost</th>
-                    <th>Plan Cost</th>
-                </tr>
-                </thead>
-                <tbody id="plansTbody">
-                <% plans.forEach((plan, index) => { %>
+                <table class="table table-striped table-hover table-bordered align-middle">
+                    <thead class="table-dark">
                     <tr>
-                    <td><%= (page - 1) * limit + index + 1 %></td>
-                    <td><%= plan.name %></td>
-                    <td><%= plan.hashrate %></td>
-                    <td><%= plan.duration %></td>
-                    <td>$<%= plan.maintenance_cost.toFixed(2) %></td>
-                    <td>$<%= plan.plan_cost.toFixed(2) %></td>
+                        <th>#</th>
+                        <th>Name</th>
+                        <th>Hashrate</th>
+                        <th>Duration (Months)</th>
+                        <th>Maintenance Cost</th>
+                        <th>Plan Cost</th>
+                        <th>Action</th>
                     </tr>
-                <% }) %>
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody id="plansTbody">
+                    <% plans.forEach((plan, index) => { %>
+                        <tr data-id="<%= plan.id %>">
+                            <td><%= (page - 1) * limit + index + 1 %></td>
+                            <td><%= plan.name %></td>
+                            <td><%= plan.hashrate %></td>
+                            <td><%= plan.duration %></td>
+                            <td>$<%= plan.maintenance_cost.toFixed(2) %></td>
+                            <td>$<%= plan.plan_cost.toFixed(2) %></td>
+                            <td>
+                                <button class="btn btn-danger btn-sm delete-plan-btn">Delete</button>
+                            </td>
+                        </tr>
+                    <% }) %>
+                    </tbody>
+                </table>
             </div>
 
             <!-- Pagination -->
@@ -138,6 +142,7 @@
 
                     data.plans.forEach((plan, index) => {
                         const row = document.createElement('tr');
+                        row.setAttribute('data-id', plan.id);
                         row.innerHTML = `
                             <td>${index + 1}</td>
                             <td>${plan.name}</td>
@@ -145,6 +150,9 @@
                             <td>${plan.duration}</td>
                             <td>$${plan.maintenance_cost}</td>
                             <td>$${plan.plan_cost}</td>
+                            <td>
+                                <button class="btn btn-danger btn-sm delete-plan-btn">Delete</button>
+                            </td>
                         `;
                         plansTbody.appendChild(row);
                     });
@@ -155,6 +163,37 @@
                     document.getElementById('loading').style.display = 'none';
                 }
             }, 300);
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const plansTbody = document.getElementById('plansTbody');
+
+            plansTbody.addEventListener('click', async (e) => {
+                if (e.target.classList.contains('delete-plan-btn')) {
+                    const row = e.target.closest('tr');
+                    const planId = row.dataset.id;
+
+                    if (!confirm('Are you sure you want to delete this plan?')) return;
+
+                    try {
+                        const response = await fetch(`/api/subscriptionplans/${planId}`, {
+                            method: 'DELETE',
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest'
+                            }
+                        });
+
+                        if (response.ok) {
+                            row.remove();
+                        } else {
+                            alert('Failed to delete plan.');
+                        }
+                    } catch (err) {
+                        console.error('Delete failed:', err);
+                        alert('Error occurred while deleting.');
+                    }
+                }
+            });
         });
     </script>
 
