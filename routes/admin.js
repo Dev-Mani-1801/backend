@@ -73,6 +73,8 @@ router.get('/dashboard', async (req, res) => {
     const collections = await mongoose.connection.db.listCollections().toArray();
     const tableNames = collections.map(col => col.name);
 
+    // console.log("TABLES: ", tableNames)
+
     if (tableNames.includes('users')) {
       const usersData = await mongoose.connection.db.collection('users').find({}).toArray();
 
@@ -124,7 +126,7 @@ router.get('/subscriptionplans', async (req, res) => {
   const skip = (page - 1) * limit;
   const query = req.query.q?.trim() || '';
 
-  const plansCollection = mongoose.connection.db.collection('subscription_plans');
+  const plansCollection = mongoose.connection.db.collection('subscriptionplans');
 
   const filter = query
     ? {
@@ -138,6 +140,8 @@ router.get('/subscriptionplans', async (req, res) => {
     .skip(skip)
     .limit(limit)
     .toArray();
+
+  console.log("Plans", plans);
 
   const total = await plansCollection.countDocuments(filter);
 

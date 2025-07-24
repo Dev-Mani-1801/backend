@@ -1,5 +1,8 @@
 import express from 'express';
 import axios from 'axios';
+import { v4 as uuidv4 } from 'uuid';
+import SubscriptionPlan from '../models/SubscriptionPlan.js';
+import Transaction from '../models/SubscriptionPlan.js';
 
 const router = express.Router();
 
@@ -84,6 +87,30 @@ router.put('/support/:id/status', requireAuth, async (req, res) => {
       success: false, 
       message: 'Failed to update ticket status' 
     });
+  }
+});
+
+router.post('/subscriptionplans/create', async (req, res) => {
+  try {
+    const { name, hashrate, duration, maintenance_cost, plan_cost } = req.body;
+
+    const newPlan = new SubscriptionPlan({
+      id: uuidv4(),
+      name,
+      hashrate: parseFloat(hashrate),
+      duration: parseInt(duration),
+      maintenance_cost: parseFloat(maintenance_cost),
+      plan_cost: parseFloat(plan_cost),
+    });
+
+    await newPlan.save();
+
+    console.log("Plan Saved!!");
+
+    res.redirect('/admin/subscriptionplans');
+  } catch (error) {
+    console.error('Error creating subscription plan:', error);
+    res.status(500).send('Internal Server Error');
   }
 });
 

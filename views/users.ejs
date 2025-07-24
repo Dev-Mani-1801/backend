@@ -7,20 +7,21 @@
     <div id="loading" style="display: none;">Searching...</div>
 
     <div class="card-container">
-    <div class="card">
-        <div class="card-header">
+        <div class="cards">
+            <div class="card-header d-flex justify-content-between align-items-center">
             <h2>Users List</h2>
             <input
                 type="text"
                 id="userSearch"
+                class="form-control"
                 placeholder="Search users..."
                 value="<%= searchQuery %>"
-                style="padding: 8px; border-radius: 4px; border: 1px solid #ccc;"
+                style="max-width: 250px;"
             />
-        </div>
+            </div>
 
-        <div class="table-responsive" id="usersTableContainer">
-            <table class="user-table" id="usersTable">
+            <div class="table-responsive data-table" id="usersTableContainer">
+            <table class="table table-dark table-striped table-hover table-bordered align-middle" id="usersTable">
                 <thead>
                 <tr>
                     <th>#</th>
@@ -34,7 +35,7 @@
                 <tbody id="usersTbody">
                 <% users.forEach((user, index) => { %>
                     <tr>
-                    <td><%= index + 1 %></td>
+                    <td><%= (page - 1) * limit + index + 1 %></td>
                     <td><%= user.name %></td>
                     <td><%= user.email %></td>
                     <td><%= user.emailVerified ? 'Yes' : 'No' %></td>
@@ -44,20 +45,26 @@
                 <% }) %>
                 </tbody>
             </table>
-        </div>
+            </div>
 
-        <!-- Pagination -->
-        <div class="pagination">
-        <% if (page > 1) { %>
-            <a href="?page=<%= page - 1 %>">&laquo; Prev</a>
-        <% } %>
-        <span>Page <%= page %></span>
-        <% if (users.length === limit) { %>
-            <a href="?page=<%= page + 1 %>">Next &raquo;</a>
-        <% } %>
+            <!-- Pagination -->
+            <div class="pagination mt-3 d-flex align-items-center">
+
+                <% if (page > 1) { %>
+                    <a href="?page=<%= page - 1 %><%= searchQuery ? '&q=' + encodeURIComponent(searchQuery) : '' %>" class="btn btn-outline-primary me-2">Prev</a>
+                <% } %>
+
+                <span class="me-2">Page <%= page %></span>
+
+                <% if (users.length === limit) { %>
+                    <a href="?page=<%= page + 1 %><%= searchQuery ? '&q=' + encodeURIComponent(searchQuery) : '' %>" class="btn btn-outline-primary ms-2">
+                    Next
+                    </a>
+                <% } %>
+            </div>
         </div>
     </div>
-    </div>
+
 
     <script>
         const searchInput = document.getElementById('userSearch');
