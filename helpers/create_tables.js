@@ -3,6 +3,7 @@ import Transaction from '../models/Transaction.js';
 import SubscriptionPlan from '../models/SubscriptionPlan.js';
 import SupportTicket from '../models/SupportTicket.js';
 import FAQ from '../models/FAQs.js';
+import WebUsers from '../models/WebUsers.js';
 
 async function ensureTransactionsCollection() {
   const collections = await mongoose.connection.db.listCollections().toArray();
@@ -110,11 +111,41 @@ async function ensureFAQCollection() {
   }
 }
 
+async function ensureWebUsersCollection() {
+  const collections = await mongoose.connection.db.listCollections().toArray();
+  const collectionNames = collections.map(col => col.name);
+
+  if (!collectionNames.includes('webusers')) {
+    try {
+      // Create dummy plan and delete it to trigger collection creation
+      const dummy = new WebUsers({
+        firstname: 'Dummy',
+        lastname: 'Dummy',
+        username: 'Dummy',
+        orgname: 'Dummy',
+        location: 'Dummy',
+        email: 'Dummy',
+        phone: 'Dummy',
+      });
+
+      await dummy.save();
+      await WebUsers.deleteOne({ id: 'init-plan-id' });
+
+      console.log('`WebUsers` collection initialized.');
+    } catch (err) {
+      console.warn('Could not create WebUsers collection:', err.message);
+    }
+  } else {
+    console.log('`WebUsers` collection already exists.');
+  }
+}
+
 async function tables_check() {
     await ensureSubscriptionPlansCollection();
     await ensureTransactionsCollection();
     await ensureSupportTicketCollection();
     await ensureFAQCollection();
+    await ensureWebUsersCollection();
 }
 
 export default tables_check
