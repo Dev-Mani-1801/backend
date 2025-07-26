@@ -51,6 +51,10 @@ const transactionSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  extra_details: {
+    type: String,
+    default: null,
+  },
   date_created: {
     type: Date,
     default: Date.now
