@@ -195,7 +195,7 @@ router.post('/profile/save', requireAuth, async (req, res) => {
       phone
     } = req.body;
 
-    const existingUser = await WebUsers.findOne({ email });
+    const existingUser = await WebUsers.findOne({ username: "admin" });
 
     if (existingUser) {
       // Update existing
@@ -222,6 +222,7 @@ router.post('/profile/save', requireAuth, async (req, res) => {
     }
 
     res.redirect('/admin/profile');
+    
   } catch (err) {
     console.error('Error saving WebUser:', err);
     res.status(500).send('Internal Server Error');

@@ -281,12 +281,13 @@ router.get('/profile', requireAuth, async (req, res) => {
   try {
     const adminEmail = req.session.adminUser.email;
 
-    let webUser = await WebUsers.findOne({ firstname: "admin" });
+    let webUser = await WebUsers.findOne({ username: "admin" });
 
     console.log("WEBUSER: ", webUser);
 
     if (!webUser) {
       const newUser = new WebUsers({
+        username: "admin",
         firstname: "admin",
         lastname: "admin",
         orgname: "admin",
@@ -295,7 +296,9 @@ router.get('/profile', requireAuth, async (req, res) => {
         phone: "123456789"
       });
 
-      webUser = await WebUsers.findOne({ firstname: "admin" });
+      await newUser.save();
+
+      webUser = await WebUsers.findOne({ username: "admin" });
 
       console.log(" WebUser created successfully");
     }
