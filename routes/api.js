@@ -2,7 +2,7 @@ import express from 'express';
 import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
 import SubscriptionPlan from '../models/SubscriptionPlan.js';
-import Transaction from '../models/SubscriptionPlan.js';
+import FAQ from '../models/FAQs.js';
 import mongoose from 'mongoose';
 
 const router = express.Router();
@@ -155,6 +155,30 @@ router.post('/help/reply', async (req, res) => {
   } catch (err) {
     console.error('Failed to send email:', err);
     res.sendStatus(500);
+  }
+});
+
+// Create new FAQ
+router.post('/faqs/create', async (req, res) => {
+  try {
+    const { name, message } = req.body;
+    const faq = new FAQ({ name, message });
+    await faq.save();
+    res.redirect('/admin/faqs');
+  } catch (err) {
+    console.error('Error creating FAQ:', err);
+    res.status(500).send('Internal Server Error');
+  }
+});
+
+// Delete FAQ
+router.delete('/faqs/:id', async (req, res) => {
+  try {
+    await FAQ.findByIdAndDelete(req.params.id);
+    res.status(200).json({ success: true });
+  } catch (err) {
+    console.error('Delete FAQ failed:', err);
+    res.status(500).json({ error: 'Delete failed' });
   }
 });
 

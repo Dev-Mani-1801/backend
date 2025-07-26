@@ -4,6 +4,7 @@ import axios from 'axios';
 import mongoose from 'mongoose';
 import dbActions from '../helpers/db_actions.js';
 import dbHelpers from '../helpers/helper_functions.js';
+import FAQ from '../models/FAQs.js';
 
 const { users_count_comparision, transactions_count_comparision, supportTickets_count_comparision } = dbActions;
 const {
@@ -350,6 +351,25 @@ router.get('/logout', (req, res) => {
     }
     res.redirect('/admin/login');
   });
+});
+
+//FAQs
+router.get('/faqs', async (req, res) => {
+  const page = parseInt(req.query.page) || 1;
+  const limit = 10;
+  const query = req.query.q || '';
+  const skip = (page - 1) * limit;
+
+  const faqsCollection = mongoose.connection.db.collection('faqs');
+
+  const filter = query ? { name: { $regex: query, $options: 'i' } } : {};
+  const faqs = await faqsCollection.find(filter).sort({ date_created: -1 }).skip(skip).limit(limit).toArray();
+
+  if (req.xhr) {
+    return res.json({ faqs });
+  }
+
+  res.render('faqs', { title: 'FAQs', faqs, searchQuery: query, page, limit, user: req.session.adminUser });
 });
 
 export default router;
