@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import Transaction from '../models/Transaction.js';
 import SubscriptionPlan from '../models/SubscriptionPlan.js';
 import SupportTicket from '../models/SupportTicket.js';
+import FAQ from '../models/FAQs.js';
 
 async function ensureTransactionsCollection() {
   const collections = await mongoose.connection.db.listCollections().toArray();
@@ -84,10 +85,36 @@ async function ensureSupportTicketCollection() {
   }
 }
 
+async function ensureFAQCollection() {
+  const collections = await mongoose.connection.db.listCollections().toArray();
+  const collectionNames = collections.map(col => col.name);
+
+  if (!collectionNames.includes('faqs')) {
+    try {
+      // Create dummy plan and delete it to trigger collection creation
+      const dummy = new FAQ({
+        user: new mongoose.Types.ObjectId(),
+        name: 'Dummy FAQ',
+        message: 'Dummy FAQ Message',
+      });
+
+      await dummy.save();
+      await FAQ.deleteOne({ id: 'init-plan-id' });
+
+      console.log('`FAQs` collection initialized.');
+    } catch (err) {
+      console.warn('Could not create FAQs collection:', err.message);
+    }
+  } else {
+    console.log('`FAQs` collection already exists.');
+  }
+}
+
 async function tables_check() {
     await ensureSubscriptionPlansCollection();
     await ensureTransactionsCollection();
     await ensureSupportTicketCollection();
+    await ensureFAQCollection();
 }
 
 export default tables_check

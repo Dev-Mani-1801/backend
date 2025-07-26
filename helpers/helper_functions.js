@@ -44,9 +44,17 @@ async function TotalSupportTickets() {
     return SupportTicketsCount;
 }
 
+async function TotalFAQs() {
+    const FAQsCountCollection = mongoose.connection.db.collection('faqs');
+    const FAQsCount = await FAQsCountCollection.countDocuments();
+
+    return FAQsCount;
+}
+
 export default {
     total_users,
     table_names,
     total_transactions,
-    TotalSupportTickets
+    TotalSupportTickets,
+    TotalFAQs
 }
