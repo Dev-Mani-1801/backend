@@ -29,25 +29,25 @@
         </div>
     </div>
 
-  <form action="/profile/update" method="POST" class="bg-gradient rounded-4 p-4 shadow-lg" style="background: linear-gradient(135deg, #1e293b, #0f172a);">
+  <form action="/api/profile/save" method="POST" class="bg-gradient rounded-4 p-4 shadow-lg" style="background: linear-gradient(135deg, #1e293b, #0f172a);">
     <div class="row g-3">
       <div class="col-md-6">
-        <input type="text" name="firstName" class="form-control form-control-lg bg-dark text-light border-0" placeholder="First Name" value="<%= user.firstName || '' %>">
+        <input type="text" name="firstname" class="form-control form-control-lg bg-dark text-light border-0" placeholder="First Name" value="<%= webUser.firstname || '' %>">
       </div>
       <div class="col-md-6">
-        <input type="text" name="lastName" class="form-control form-control-lg bg-dark text-light border-0" placeholder="Last Name" value="<%= user.lastName || '' %>">
+        <input type="text" name="lastname" class="form-control form-control-lg bg-dark text-light border-0" placeholder="Last Name" value="<%= webUser.lastname || '' %>">
       </div>
       <div class="col-md-6">
-        <input type="text" name="organization" class="form-control form-control-lg bg-dark text-light border-0" placeholder="Organization Name" value="<%= user.organization || '' %>">
+        <input type="text" name="orgname" class="form-control form-control-lg bg-dark text-light border-0" placeholder="Organization Name" value="<%= webUser.orgname || '' %>">
       </div>
       <div class="col-md-6">
-        <input type="text" name="location" class="form-control form-control-lg bg-dark text-light border-0" placeholder="Location" value="<%= user.location || '' %>">
+        <input type="text" name="location" class="form-control form-control-lg bg-dark text-light border-0" placeholder="Location" value="<%= webUser.location || '' %>">
       </div>
       <div class="col-md-6">
-        <input type="email" name="email" class="form-control form-control-lg bg-dark text-light border-0" placeholder="E-mail Address" value="<%= user.email || '' %>">
+        <input type="email" name="email" class="form-control form-control-lg bg-dark text-light border-0" placeholder="E-mail Address" value="<%= webUser.email || '' %>">
       </div>
       <div class="col-md-6">
-        <input type="tel" name="phone" class="form-control form-control-lg bg-dark text-light border-0" placeholder="Phone Number" value="<%= user.phone || '' %>">
+        <input type="tel" name="phone" class="form-control form-control-lg bg-dark text-light border-0" placeholder="Phone Number" value="<%= webUser.phone || '' %>">
       </div>
     </div>
 

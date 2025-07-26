@@ -2,8 +2,10 @@ import express from 'express';
 import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
 import SubscriptionPlan from '../models/SubscriptionPlan.js';
+import WebUsers from '../models/WebUsers.js';
 import FAQ from '../models/FAQs.js';
 import mongoose from 'mongoose';
+import bcrypt from 'bcrypt';
 
 const router = express.Router();
 
@@ -179,6 +181,50 @@ router.delete('/faqs/:id', async (req, res) => {
   } catch (err) {
     console.error('Delete FAQ failed:', err);
     res.status(500).json({ error: 'Delete failed' });
+  }
+});
+
+router.post('/profile/save', requireAuth, async (req, res) => {
+  try {
+    const {
+      firstname,
+      lastname,
+      orgname,
+      location,
+      email,
+      phone
+    } = req.body;
+
+    const existingUser = await WebUsers.findOne({ email });
+
+    if (existingUser) {
+      // Update existing
+      existingUser.firstname = firstname;
+      existingUser.lastname = lastname;
+      existingUser.orgname = orgname;
+      existingUser.location = location;
+      existingUser.phone = phone;
+      existingUser.email = email;
+
+      await existingUser.save();
+    } else {
+      // Create new
+      const newUser = new WebUsers({
+        firstname,
+        lastname,
+        orgname,
+        location,
+        email,
+        phone: phone
+      });
+
+      await newUser.save();
+    }
+
+    res.redirect('/admin/profile');
+  } catch (err) {
+    console.error('Error saving WebUser:', err);
+    res.status(500).send('Internal Server Error');
   }
 });
 

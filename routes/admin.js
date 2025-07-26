@@ -4,7 +4,7 @@ import axios from 'axios';
 import mongoose from 'mongoose';
 import dbActions from '../helpers/db_actions.js';
 import dbHelpers from '../helpers/helper_functions.js';
-import FAQ from '../models/FAQs.js';
+import WebUsers from '../models/WebUsers.js';
 
 const { users_count_comparision, transactions_count_comparision, supportTickets_count_comparision } = dbActions;
 const {
@@ -276,11 +276,39 @@ router.get('/wallet', requireAuth, (req, res) => {
 });
 
 // Profile route
-router.get('/profile', requireAuth, (req, res) => {
-  res.render('profile', {
-    title: 'Profile',
-    user: req.session.adminUser
-  });
+
+router.get('/profile', requireAuth, async (req, res) => {
+  try {
+    const adminEmail = req.session.adminUser.email;
+
+    let webUser = await WebUsers.findOne({ firstname: "admin" });
+
+    console.log("WEBUSER: ", webUser);
+
+    if (!webUser) {
+      const newUser = new WebUsers({
+        firstname: "admin",
+        lastname: "admin",
+        orgname: "admin",
+        location: "admin",
+        email: "admin@gmail.com",
+        phone: "123456789"
+      });
+
+      webUser = await WebUsers.findOne({ firstname: "admin" });
+
+      console.log(" WebUser created successfully");
+    }
+
+    res.render('profile', {
+      title: 'Profile',
+      user: req.session.adminUser,
+      webUser: webUser
+    });
+  } catch (err) {
+    console.error('Error fetching WebUser:', err);
+    res.status(500).send('Internal Server Error');
+  }
 });
 
 // Settings route
