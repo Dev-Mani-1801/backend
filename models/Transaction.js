@@ -43,6 +43,14 @@ const transactionSchema = new mongoose.Schema({
     ref: 'subscriptionplans',
     required: true
   },
+  deposit: {
+    type: Boolean,
+    default: false
+  },
+  withdraw: {
+    type: Boolean,
+    default: false
+  },
   date_created: {
     type: Date,
     default: Date.now
