@@ -283,8 +283,6 @@ router.get('/profile', requireAuth, async (req, res) => {
 
     let webUser = await WebUsers.findOne({ username: "admin" });
 
-    console.log("WEBUSER: ", webUser);
-
     if (!webUser) {
       const newUser = new WebUsers({
         username: "admin",
