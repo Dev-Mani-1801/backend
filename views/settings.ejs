@@ -1,243 +1,49 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><%= title %> - DashPro Admin</title>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <link href="/css/style.css" rel="stylesheet">
-</head>
-<body>
-    <div class="admin-container">
-        <!-- Sidebar -->
-        <aside class="sidebar">
-            <div class="sidebar-header">
-                <h2>DashPro</h2>
-            </div>
-            <nav class="sidebar-nav">
-                <ul>
-                    <li>
-                        <a href="/admin/dashboard">
-                            <i class="fas fa-tachometer-alt"></i>
-                            <span>Dashboard</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="/admin/wallet">
-                            <i class="fas fa-wallet"></i>
-                            <span>Wallet</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="/admin/profile">
-                            <i class="fas fa-user"></i>
-                            <span>Profile</span>
-                        </a>
-                    </li>
-                    <li class="active">
-                        <a href="/admin/settings">
-                            <i class="fas fa-cog"></i>
-                            <span>Settings</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="/admin/help">
-                            <i class="fas fa-question-circle"></i>
-                            <span>Help</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="/admin/withdraw">
-                            <i class="fas fa-money-bill-wave"></i>
-                            <span>Withdraw</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="/admin/deposit">
-                            <i class="fas fa-plus-circle"></i>
-                            <span>Deposit</span>
-                        </a>
-                    </li>
-                </ul>
-            </nav>
-            <div class="sidebar-footer">
-                <a href="/admin/logout" class="logout-btn">
-                    <i class="fas fa-sign-out-alt"></i>
-                    Log Out
-                </a>
-            </div>
-        </aside>
+<%- include('partials/header', { title: 'Settings' }) %>
+<%- include('partials/sidebar', { user }) %>
 
-        <!-- Main Content -->
-        <div class="main-content">
-            <!-- Header -->
-            <header class="header">
-                <div class="header-left">
-                    <h1>Settings</h1>
-                </div>
-                <div class="header-right">
-                    <div class="search-box">
-                        <i class="fas fa-search"></i>
-                        <input type="text" placeholder="Search...">
-                    </div>
-                    <div class="user-info">
-                        <i class="fas fa-user-circle"></i>
-                        <span>Hello, <%= user %>!</span>
-                    </div>
-                </div>
-            </header>
+<div class="main-content p-4 text-light">
+  <h2 class="mb-4">System Settings</h2>
 
-            <!-- Settings Content -->
-            <main class="page-content">
-                <div class="settings-container">
-                    <div class="settings-tabs">
-                        <button class="tab-btn active" onclick="showTab('general')">General</button>
-                        <button class="tab-btn" onclick="showTab('security')">Security</button>
-                        <button class="tab-btn" onclick="showTab('notifications')">Notifications</button>
-                        <button class="tab-btn" onclick="showTab('api')">API Settings</button>
-                    </div>
-
-                    <!-- General Settings -->
-                    <div id="general" class="tab-content active">
-                        <div class="settings-section">
-                            <h3>General Settings</h3>
-                            <form class="settings-form">
-                                <div class="form-group">
-                                    <label for="siteName">Site Name</label>
-                                    <input type="text" id="siteName" value="DashPro Admin">
-                                </div>
-                                <div class="form-group">
-                                    <label for="siteDescription">Site Description</label>
-                                    <textarea id="siteDescription">Bitcoin Mining App Admin Panel</textarea>
-                                </div>
-                                <div class="form-group">
-                                    <label for="timezone">Timezone</label>
-                                    <select id="timezone">
-                                        <option value="UTC">UTC</option>
-                                        <option value="EST">Eastern Time</option>
-                                        <option value="PST">Pacific Time</option>
-                                        <option value="IST" selected>Indian Standard Time</option>
-                                    </select>
-                                </div>
-                                <button type="submit" class="btn btn-primary">Save Changes</button>
-                            </form>
-                        </div>
-                    </div>
-
-                    <!-- Security Settings -->
-                    <div id="security" class="tab-content">
-                        <div class="settings-section">
-                            <h3>Security Settings</h3>
-                            <form class="settings-form">
-                                <div class="form-group">
-                                    <label for="currentPassword">Current Password</label>
-                                    <input type="password" id="currentPassword">
-                                </div>
-                                <div class="form-group">
-                                    <label for="newPassword">New Password</label>
-                                    <input type="password" id="newPassword">
-                                </div>
-                                <div class="form-group">
-                                    <label for="confirmPassword">Confirm New Password</label>
-                                    <input type="password" id="confirmPassword">
-                                </div>
-                                <div class="form-group">
-                                    <label class="checkbox-label">
-                                        <input type="checkbox" checked>
-                                        Enable Two-Factor Authentication
-                                    </label>
-                                </div>
-                                <button type="submit" class="btn btn-primary">Update Security</button>
-                            </form>
-                        </div>
-                    </div>
-
-                    <!-- Notifications Settings -->
-                    <div id="notifications" class="tab-content">
-                        <div class="settings-section">
-                            <h3>Notification Settings</h3>
-                            <form class="settings-form">
-                                <div class="form-group">
-                                    <label class="checkbox-label">
-                                        <input type="checkbox" checked>
-                                        Email notifications for new users
-                                    </label>
-                                </div>
-                                <div class="form-group">
-                                    <label class="checkbox-label">
-                                        <input type="checkbox" checked>
-                                        Email notifications for transactions
-                                    </label>
-                                </div>
-                                <div class="form-group">
-                                    <label class="checkbox-label">
-                                        <input type="checkbox">
-                                        SMS notifications for critical alerts
-                                    </label>
-                                </div>
-                                <div class="form-group">
-                                    <label class="checkbox-label">
-                                        <input type="checkbox" checked>
-                                        Push notifications for support tickets
-                                    </label>
-                                </div>
-                                <button type="submit" class="btn btn-primary">Save Preferences</button>
-                            </form>
-                        </div>
-                    </div>
-
-                    <!-- API Settings -->
-                    <div id="api" class="tab-content">
-                        <div class="settings-section">
-                            <h3>API Settings</h3>
-                            <form class="settings-form">
-                                <div class="form-group">
-                                    <label for="apiUrl">Backend API URL</label>
-                                    <input type="url" id="apiUrl" value="https://fake-mining-backend.onrender.com/api">
-                                </div>
-                                <div class="form-group">
-                                    <label for="apiKey">API Key</label>
-                                    <div class="api-key-group">
-                                        <input type="text" id="apiKey" value="****-****-****-****" readonly>
-                                        <button type="button" class="btn btn-secondary">Generate New</button>
-                                    </div>
-                                </div>
-                                <div class="form-group">
-                                    <label class="checkbox-label">
-                                        <input type="checkbox" checked>
-                                        Enable API rate limiting
-                                    </label>
-                                </div>
-                                <div class="form-group">
-                                    <label for="rateLimit">Rate Limit (requests per minute)</label>
-                                    <input type="number" id="rateLimit" value="100">
-                                </div>
-                                <button type="submit" class="btn btn-primary">Update API Settings</button>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            </main>
+  <div class="settings-card bg-dark rounded-4 p-4 mb-4 shadow-lg" style="background: linear-gradient(135deg, #0f172a, #1e293b);">
+    <div class="row g-3">
+      <div class="col-md-6">
+        <div class="setting-item p-3 bg-gradient rounded-3" style="background: linear-gradient(135deg, #1e293b, #0f172a);">
+          <h5 class="text-white mb-2">Site Name</h5>
+          <p class="text-muted mb-0">Bitcoin Mining Admin Panel</p>
         </div>
+      </div>
+      <div class="col-md-6">
+        <div class="setting-item p-3 bg-gradient rounded-3" style="background: linear-gradient(135deg, #1e293b, #0f172a);">
+          <h5 class="text-white mb-2">Database Connection</h5>
+          <p class="text-success mb-0"><i class="fas fa-check-circle me-2"></i>MongoDB Atlas - Connected</p>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="setting-item p-3 bg-gradient rounded-3" style="background: linear-gradient(135deg, #1e293b, #0f172a);">
+          <h5 class="text-white mb-2">Session Timeout</h5>
+          <p class="text-muted mb-0">24 hours</p>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="setting-item p-3 bg-gradient rounded-3" style="background: linear-gradient(135deg, #1e293b, #0f172a);">
+          <h5 class="text-white mb-2">Default Password</h5>
+          <p class="text-muted mb-0">admin@123</p>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="setting-item p-3 bg-gradient rounded-3" style="background: linear-gradient(135deg, #1e293b, #0f172a);">
+          <h5 class="text-white mb-2">Server Status</h5>
+          <p class="text-success mb-0"><i class="fas fa-server me-2"></i>Running on Port 3001</p>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="setting-item p-3 bg-gradient rounded-3" style="background: linear-gradient(135deg, #1e293b, #0f172a);">
+          <h5 class="text-white mb-2">Environment</h5>
+          <p class="text-warning mb-0"><i class="fas fa-code me-2"></i>Development Mode</p>
+        </div>
+      </div>
     </div>
+  </div>
+</div>
 
-    <script src="/js/script.js"></script>
-    <script>
-        function showTab(tabName) {
-            // Hide all tab contents
-            const tabContents = document.querySelectorAll('.tab-content');
-            tabContents.forEach(content => content.classList.remove('active'));
-            
-            // Remove active class from all tab buttons
-            const tabBtns = document.querySelectorAll('.tab-btn');
-            tabBtns.forEach(btn => btn.classList.remove('active'));
-            
-            // Show selected tab content
-            document.getElementById(tabName).classList.add('active');
-            
-            // Add active class to clicked tab button
-            event.target.classList.add('active');
-        }
-    </script>
-</body>
-</html>
+<%- include('partials/footer') %>

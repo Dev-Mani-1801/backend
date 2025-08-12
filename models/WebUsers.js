@@ -30,6 +30,11 @@ const WebUsersSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  status: {
+    type: String,
+    enum: ['active', 'inactive', 'suspended'],
+    default: 'active'
+  },
   createdAt: {
     type: Date,
     default: Date.now

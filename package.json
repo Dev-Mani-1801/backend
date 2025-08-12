@@ -6,7 +6,9 @@
   "type": "module",
   "scripts": {
     "start": "node server.js",
-    "dev": "nodemon server.js"
+    "dev": "nodemon server.js",
+    "build": "npm install",
+    "deploy": "npm run build && npm start"
   },
   "keywords": [
     "admin",

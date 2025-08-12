@@ -2,6 +2,45 @@
 <%- include('partials/header', { title }) %>
 <%- include('partials/sidebar', { user }) %>
 
+<style>
+.dropdown {
+    position: relative;
+}
+
+.dropdown-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 1000;
+    min-width: 160px;
+    padding: 0.5rem 0;
+    margin: 0;
+    background-color: #212529;
+    border: 1px solid #495057;
+    border-radius: 0.375rem;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.dropdown-item {
+    display: block;
+    width: 100%;
+    padding: 0.375rem 1rem;
+    clear: both;
+    font-weight: 400;
+    color: #fff;
+    text-align: inherit;
+    text-decoration: none;
+    white-space: nowrap;
+    background-color: transparent;
+    border: 0;
+}
+
+.dropdown-item:hover {
+    background-color: #495057;
+    color: #fff;
+}
+</style>
+
 <div class="main-content">
 
     <div id="loading" style="display: none;">Searching...</div>
@@ -30,6 +69,7 @@
                     <th>Email Verified</th>
                     <th>Status</th>
                     <th>Created At</th>
+                    <th>Actions</th>
                 </tr>
                 </thead>
                 <tbody id="usersTbody">
@@ -39,8 +79,36 @@
                     <td><%= user.name %></td>
                     <td><%= user.email %></td>
                     <td><%= user.emailVerified ? 'Yes' : 'No' %></td>
-                    <td><%= user.isActive ? 'Active' : 'Inactive' %></td>
-                    <td><%= user.createdAt.toLocaleDateString() %></td>
+                    <td>
+                        <%
+                        let statusColor = 'success';
+                        let statusText = user.status || (user.isActive ? 'active' : 'inactive');
+                        if (statusText === 'inactive') statusColor = 'warning';
+                        if (statusText === 'suspended') statusColor = 'danger';
+                        %>
+                        <span class="badge bg-<%= statusColor %>">
+                            <%= statusText.charAt(0).toUpperCase() + statusText.slice(1) %>
+                        </span>
+                    </td>
+                    <td><%= new Date(user.createdAt).toLocaleDateString() %></td>
+                    <td>
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-light dropdown-toggle" type="button" onclick="toggleDropdown(this)" id="dropdownMenuButton<%= index %>">
+                                <i class="fas fa-cog"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-dark" id="dropdownMenu<%= index %>" style="display: none;">
+                                <li><a class="dropdown-item" href="javascript:void(0)" onclick="changeUserStatus('<%= user._id %>', 'active')">
+                                    <i class="fas fa-check text-success me-2"></i>Set Active
+                                </a></li>
+                                <li><a class="dropdown-item" href="javascript:void(0)" onclick="changeUserStatus('<%= user._id %>', 'inactive')">
+                                    <i class="fas fa-pause text-warning me-2"></i>Set Inactive
+                                </a></li>
+                                <li><a class="dropdown-item" href="javascript:void(0)" onclick="changeUserStatus('<%= user._id %>', 'suspended')">
+                                    <i class="fas fa-ban text-danger me-2"></i>Suspend
+                                </a></li>
+                            </ul>
+                        </div>
+                    </td>
                     </tr>
                 <% }) %>
                 </tbody>
@@ -86,19 +154,41 @@
                 usersTbody.innerHTML = '';
 
                 if (data.users.length === 0) {
-                usersTbody.innerHTML = '<tr><td colspan="6">No users found</td></tr>';
+                usersTbody.innerHTML = '<tr><td colspan="7">No users found</td></tr>';
                 return;
                 }
 
                 data.users.forEach((user, index) => {
                 const row = document.createElement('tr');
+                const statusText = user.status || (user.isActive ? 'active' : 'inactive');
+                const statusColor = statusText === 'active' ? 'success' : statusText === 'inactive' ? 'warning' : 'danger';
+                const statusDisplay = statusText.charAt(0).toUpperCase() + statusText.slice(1);
+
                 row.innerHTML = `
                     <td>${index + 1}</td>
                     <td>${user.name}</td>
                     <td>${user.email}</td>
                     <td>${user.emailVerified ? 'Yes' : 'No'}</td>
-                    <td>${user.isActive ? 'Active' : 'Inactive'}</td>
-                    <td>${new Date(user.createdAt).toLocaleString()}</td>
+                    <td><span class="badge bg-${statusColor}">${statusDisplay}</span></td>
+                    <td>${new Date(user.createdAt).toLocaleDateString()}</td>
+                    <td>
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-light dropdown-toggle" type="button" onclick="toggleDropdown(this)" id="dropdownMenuButton${index}">
+                                <i class="fas fa-cog"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-dark" id="dropdownMenu${index}" style="display: none;">
+                                <li><a class="dropdown-item" href="javascript:void(0)" onclick="changeUserStatus('${user._id}', 'active')">
+                                    <i class="fas fa-check text-success me-2"></i>Set Active
+                                </a></li>
+                                <li><a class="dropdown-item" href="javascript:void(0)" onclick="changeUserStatus('${user._id}', 'inactive')">
+                                    <i class="fas fa-pause text-warning me-2"></i>Set Inactive
+                                </a></li>
+                                <li><a class="dropdown-item" href="javascript:void(0)" onclick="changeUserStatus('${user._id}', 'suspended')">
+                                    <i class="fas fa-ban text-danger me-2"></i>Suspend
+                                </a></li>
+                            </ul>
+                        </div>
+                    </td>
                 `;
                 usersTbody.appendChild(row);
                 });
@@ -116,6 +206,100 @@
 
         loading.style.display = 'block';
         loading.style.display = 'none';
+
+        // Manual dropdown toggle function
+        window.toggleDropdown = function(button) {
+            // Close all other dropdowns first
+            document.querySelectorAll('.dropdown-menu').forEach(menu => {
+                if (menu.style.display === 'block') {
+                    menu.style.display = 'none';
+                }
+            });
+
+            // Find the dropdown menu for this button
+            const dropdown = button.parentElement;
+            const menu = dropdown.querySelector('.dropdown-menu');
+
+            if (menu.style.display === 'none' || menu.style.display === '') {
+                menu.style.display = 'block';
+                menu.style.position = 'absolute';
+                menu.style.zIndex = '1000';
+            } else {
+                menu.style.display = 'none';
+            }
+        };
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            if (!event.target.closest('.dropdown')) {
+                document.querySelectorAll('.dropdown-menu').forEach(menu => {
+                    menu.style.display = 'none';
+                });
+            }
+        });
+
+        // Function to change user status
+        window.changeUserStatus = async function(userId, newStatus) {
+            if (!confirm(`Are you sure you want to change user status to ${newStatus}?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/users/update-status', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        userId: userId,
+                        status: newStatus
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // Show success message
+                    showAlert('success', result.message);
+                    // Reload the page to reflect changes
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
+                } else {
+                    showAlert('error', result.message);
+                }
+            } catch (error) {
+                console.error('Error updating user status:', error);
+                showAlert('error', 'Failed to update user status');
+            }
+        };
+
+        // Function to show alerts
+        function showAlert(type, message) {
+            const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+            const iconClass = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle';
+
+            const alertHtml = `
+                <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
+                    <i class="fas ${iconClass} me-2"></i>
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+
+            // Insert alert at the top of main content
+            const mainContent = document.querySelector('.main-content');
+            mainContent.insertAdjacentHTML('afterbegin', alertHtml);
+
+            // Auto-hide after 5 seconds
+            setTimeout(() => {
+                const alert = mainContent.querySelector('.alert');
+                if (alert) {
+                    const bsAlert = new bootstrap.Alert(alert);
+                    bsAlert.close();
+                }
+            }, 5000);
+        }
     </script>
 
 <%- include('partials/footer') %>

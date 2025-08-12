@@ -38,20 +38,81 @@ router.get('/login', (req, res) => {
 // Handle login
 router.post('/login', async (req, res) => {
   const { username, password } = req.body;
-  
+
   try {
-    // Simple admin authentication
-    if (username === process.env.ADMIN_USERNAME && password === process.env.ADMIN_PASSWORD) {
+    // Find user in MongoDB
+    const adminUser = await WebUsers.findOne({
+      username: username
+    });
+
+    if (adminUser && password === 'admin@123') {
       req.session.isLoggedIn = true;
-      req.session.adminUser = username;
+      req.session.adminUser = adminUser.username;
+      req.session.adminUserData = adminUser;
       res.redirect('/admin/dashboard');
     } else {
       req.session.error = 'Invalid credentials';
       res.redirect('/admin/login');
     }
   } catch (error) {
+    console.error('Login error:', error);
     req.session.error = 'Login failed';
     res.redirect('/admin/login');
+  }
+});
+
+// Register admin route (for initial setup)
+router.post('/register-admin', async (req, res) => {
+  try {
+    const { firstname, lastname, username, orgname, location, email, phone, password } = req.body;
+
+    // Check if admin already exists
+    const existingAdmin = await WebUsers.findOne({
+      $or: [{ username }, { email }]
+    });
+
+    if (existingAdmin) {
+      return res.status(400).json({
+        success: false,
+        message: 'Admin with this username or email already exists'
+      });
+    }
+
+    // Hash password
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+    // Create new admin
+    const newAdmin = new WebUsers({
+      firstname,
+      lastname,
+      username,
+      orgname,
+      location,
+      email,
+      phone,
+      password: hashedPassword,
+      role: 'admin'
+    });
+
+    await newAdmin.save();
+
+    res.status(201).json({
+      success: true,
+      message: 'Admin registered successfully',
+      admin: {
+        username: newAdmin.username,
+        email: newAdmin.email,
+        role: newAdmin.role
+      }
+    });
+
+  } catch (error) {
+    console.error('Admin registration error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to register admin'
+    });
   }
 });
 
@@ -60,7 +121,7 @@ router.get('/', requireAuth, async (req, res) => {
   res.redirect('/admin/dashboard');
 });
 
-router.get('/dashboard', async (req, res) => {
+router.get('/dashboard', requireAuth, async (req, res) => {
   try {
 
     const defaultData = {
@@ -283,6 +344,8 @@ router.get('/profile', requireAuth, async (req, res) => {
 
     let webUser = await WebUsers.findOne({ username: "admin" });
 
+    console.log("WEBUSER: ", webUser);
+
     if (!webUser) {
       const newUser = new WebUsers({
         username: "admin",
@@ -301,10 +364,18 @@ router.get('/profile', requireAuth, async (req, res) => {
       console.log(" WebUser created successfully");
     }
 
+    // Get messages and clear them immediately
+    const successMessage = req.session.successMessage || null;
+    const errorMessage = req.session.errorMessage || null;
+    req.session.successMessage = null;
+    req.session.errorMessage = null;
+
     res.render('profile', {
       title: 'Profile',
       user: req.session.adminUser,
-      webUser: webUser
+      webUser: webUser,
+      successMessage: successMessage,
+      errorMessage: errorMessage
     });
   } catch (err) {
     console.error('Error fetching WebUser:', err);
@@ -398,7 +469,7 @@ router.get('/faqs', async (req, res) => {
     return res.json({ faqs });
   }
 
-  res.render('faqs', { title: 'FAQs', faqs, searchQuery: query, page, limit, user: req.session.adminUser });
+  res.render('Faqs', { title: 'FAQs', faqs, searchQuery: query, page, limit, user: req.session.adminUser });
 });
 
 export default router;
