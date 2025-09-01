@@ -60,7 +60,7 @@ async function getNextIndexForChain(chain) {
   const counter = await DerivationCounter.findOneAndUpdate(
     { chain },
     { $inc: { nextIndex: 1 } },
-    { upsert: true, returnDocument: "after" } // mongoose v6+ option for the updated doc
+    { upsert: true, returnDocument: "after" }
   ).lean();
   return counter.nextIndex - 1;
 }
@@ -119,7 +119,6 @@ router.get("/:userId/:asset", async (req, res) => {
       }
 
       try {
-        // Try to insert. If the address is unique in the DB and no race occurs, this will succeed.
         const doc = await WalletAddress.create({
           userId,
           chain,
