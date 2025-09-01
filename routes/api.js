@@ -9,6 +9,8 @@ import faqRoutes from './api_routes/faqs.js';
 import UserRoutes from './api_routes/users.js'
 import HelpRoutes from './api_routes/support.js'
 
+import alchemyy_deposits from './api_routes/alchemy_deposit.js';
+
 const router = express.Router();
 
 // Middleware to check if admin is logged in for API routes
@@ -108,5 +110,9 @@ router.use('/help', HelpRoutes);
 router.use('/users', UserRoutes);
 router.use('/transactions', transactionRoutes);
 router.use('/subscriptionplans', subscriptionRoutes);
+
+// Crypto Stuff
+
+router.use('/deposit-address', alchemyy_deposits);
 
 export default router;
