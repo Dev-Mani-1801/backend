@@ -14,7 +14,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Load env vars
-dotenv.config();
+dotenv.config({ path: "/home/pi/bitcoin_mining_backend/.env" });
 
 const app = express();
 
