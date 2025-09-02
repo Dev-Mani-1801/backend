@@ -56,4 +56,23 @@ router.post("/balance", async (req, res) => {
   }
 });
 
+router.get("/history", async (req, res) => {
+  try {
+    const { userId } = req.query;
+
+    if (!userId) {
+      return res.status(400).json({ error: "Missing userId" });
+    }
+
+    const history = await BalanceHistory.find({ user: userId })
+      .sort({ date: -1 })
+      .lean();
+
+    res.json({ success: true, balances: history });
+  } catch (err) {
+    console.error("Error fetching balance history:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
 export default router;
