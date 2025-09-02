@@ -30,3 +30,22 @@ Mnemonic: language balcony desk south forward actor claw artwork gossip swarm va
 Private Key (WIF): cN2a6GmRx2jVmm7m37geEUZUTReuAjR1iZSDPkCKqGukVf13JpFj
 Testnet BTC Address: tb1q6e20ms8k83t7fgrr8wweleqjnyennvhyf82czv
 
+------------------------------------------------------------------------------------------
+
+~/.bitcoin/bitcoin.conf
+
+server=1
+txindex=1
+
+[test]
+rpcuser=btcuser
+rpcpassword=btcpass_please_change_me
+rpcbind=127.0.0.1
+rpcallowip=127.0.0.1
+rpcport=18332
+
+zmqpubrawtx=tcp://127.0.0.1:28332
+zmqpubrawblock=tcp://127.0.0.1:28333
+
+
+
