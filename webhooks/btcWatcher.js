@@ -164,3 +164,11 @@ export async function connectBTCWatcher() {
     }
     })();
 }
+
+export function getWatchedAddressesCount() {
+  return watched.size;
+}
+
+export function getWatchedAddresses() {
+  return Array.from(watched);
+}
