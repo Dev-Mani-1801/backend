@@ -11,6 +11,7 @@ import apiRoutes from './routes/api.js';
 import tables_check from './helpers/create_tables.js';
 import connectAlchemyWS from './webhooks/alchemyWatcher.js';
 import { connectBTCWatcher } from "./webhooks/btcWatcher.js";
+import "./cronJobs.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
