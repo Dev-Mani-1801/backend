@@ -47,5 +47,24 @@ rpcport=18332
 zmqpubrawtx=tcp://127.0.0.1:28332
 zmqpubrawblock=tcp://127.0.0.1:28333
 
+------------------------------------------------------------------------------------------
 
+/etc/systemd/system/bitcoind.service
+
+[Unit]
+Description=Bitcoin daemon
+After=network.target
+
+[Service]
+ExecStart=/usr/local/bin/bitcoind -daemon -testnet -conf=/home/pi/.bitcoin/bitcoin.conf -pid=/home/pi/.bitcoin/bitcoind.pid
+ExecStop=/usr/local/bin/bitcoin-cli -testnet stop
+Restart=always
+User=pi
+Group=pi
+Type=forking
+PIDFile=/home/pi/.bitcoin/bitcoind.pid
+TimeoutStopSec=600
+
+[Install]
+WantedBy=multi-user.target
 
