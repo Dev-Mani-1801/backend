@@ -1,4 +1,4 @@
-Generate a Test Wallet
+Generate a Test Wallet (BNB Chain)
 
 node -e "import { Wallet } from 'ethers'; const wallet = Wallet.createRandom(); console.log('Mnemonic:', wallet.mnemonic.phrase); console.log('Address:', wallet.address); console.log('Private Key:', wallet.privateKey);"
 
@@ -67,4 +67,32 @@ TimeoutStopSec=600
 
 [Install]
 WantedBy=multi-user.target
+
+################################################## The testing commands ##################################################
+
+
+Create a new wallet: 
+
+bitcoin-cli -testnet createwallet "legacywallet" false false "" false false true
+
+Add the existing wallet using priv key:
+
+bitcoin-cli -testnet -rpcwallet=mywallet importprivkey cMjtkT3jy6cfmd2XSrX5ejTszXem77dVochHzyMBLep7PZ2jb8pU
+
+Verify that the address shows up: 
+
+bitcoin-cli -testnet -rpcwallet=legacywallet getaddressesbylabel ""
+
+Do a manual rescan (Needed to get past transactions):
+
+bitcoin-cli -testnet -rpcwallet=legacywallet rescanblockchain
+
+Check wallet Balance: 
+
+bitcoin-cli -testnet -rpcwallet=legacywallet getbalance
+
+P.S: if it shows 0 as balance, check if the sync has completed via:
+
+bitcoin-cli -testnet getblockchaininfo | grep verificationprogress
+
 
