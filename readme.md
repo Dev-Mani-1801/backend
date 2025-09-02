@@ -12,6 +12,10 @@ Private Key: 0x6484206063fe860f62b4179ccaac853486b54faa031c8965b6a0584033998c62
 
 ################################################### BTC Wallets ################################################### 
 
+Mnemonic: unit park forum voyage first feed donor pact hair divide educate acid
+Testnet XPUB: tpubD6NzVbkrYhZ4XeipKGUSCdiVGgN27DoMTWad4XopHYqHiAinPGxmDywKPb662VtXRhxS89oXHv21kU7PHYR57nQVU6KLdKYSEYcBkPFzq8P
+Testnet XPRV: tprv8ZgxMBicQKsPeBh2RcoqoE4Nher5wtcStCyqn1mWsH2tsgU1kt9B3VKTDURwrfBvf6Nf7p3qHvvus6Aq9aurF3e5Lix4zCyT5QjixmrbjCi
+
 Main Master Wallet: 
 
 Mnemonic: sunny fold just solar mad vacuum jealous scrub party lobster huge bicycle

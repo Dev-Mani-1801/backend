@@ -8,7 +8,7 @@ const router = express.Router();
 router.get("/balance", async (req, res) => {
   try {
     const { userId } = req.query;
-    
+
     if (!userId) {
       return res.status(400).json({ error: "Missing userId" });
     }
@@ -46,6 +46,8 @@ router.post("/balance", async (req, res) => {
 
     balance[asset] = amount;
     await balance.save();
+
+    console.log(`Saving BTC Balance for User: ${userId}, Balance: ${amount}`);
 
     res.json({ success: true, balance });
   } catch (err) {

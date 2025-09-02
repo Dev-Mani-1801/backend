@@ -11,14 +11,9 @@ import { registerBtcAddress } from "../../webhooks/btcWatcher.js";
 
 const router = express.Router();
 
-// env
-const ALCHEMY_API_KEY = process.env.ALCHEMY_API_KEY;
-const ALCHEMY_WEBHOOK_ID = process.env.ALCHEMY_WEBHOOK_ID;
-const ALCHEMY_URL = `https://dashboard.alchemy.com/api/update-webhook-addresses`;
-
 // master keys
-const EVM_MNEMONIC = process.env.EVM_MNEMONIC;
-const BTC_XPUB = process.env.BTC_XPUB;
+const EVM_MNEMONIC = "apple sentence captain mirror prosper magnet erase valid diet inform grant anger";
+const BTC_XPUB = "tpubD6NzVbkrYhZ4XeipKGUSCdiVGgN27DoMTWad4XopHYqHiAinPGxmDywKPb662VtXRhxS89oXHv21kU7PHYR57nQVU6KLdKYSEYcBkPFzq8P";
 
 // init EVM wallet
 let evmHdNode = null;
