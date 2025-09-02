@@ -40,7 +40,8 @@
     "pg": "^8.16.3",
     "tiny-secp256k1": "^2.2.4",
     "uuid": "^11.1.0",
-    "wif": "^5.0.0"
+    "wif": "^5.0.0",
+    "zeromq": "^6.5.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"
