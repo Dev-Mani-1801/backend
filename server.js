@@ -9,6 +9,7 @@ import { fileURLToPath } from 'url';
 import adminRoutes from './routes/admin.js';
 import apiRoutes from './routes/api.js';
 import tables_check from './helpers/create_tables.js';
+import connectAlchemyWS from './webhooks/alchemyWatcher.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -17,6 +18,8 @@ const __dirname = path.dirname(__filename);
 dotenv.config({ path: "/home/pi/bitcoin_mining_backend/.env" });
 
 const app = express();
+
+await connectAlchemyWS();
 
 await connectDB();
 

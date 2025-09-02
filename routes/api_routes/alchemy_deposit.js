@@ -6,7 +6,7 @@ import { ethers, Wallet as EthersWallet } from "ethers";
 import * as bitcoin from "bitcoinjs-lib";
 import BIP32Factory from "bip32";
 import * as ecc from "tiny-secp256k1";
-import fetch from "node-fetch";
+import { subscribeAddress } from "../../webhooks/alchemyWatcher.js"
 
 const router = express.Router();
 
@@ -46,32 +46,6 @@ async function getNextIndexForChain(chain) {
 }
 
 /**
- * Add address to Alchemy Webhook subscription
- */
-async function addAddressToAlchemyWebhook(address) {
-  if (!ALCHEMY_WEBHOOK_ID || !ALCHEMY_API_KEY) return;
-
-  try {
-    const resp = await fetch(ALCHEMY_URL, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Alchemy-Token": ALCHEMY_API_KEY,
-      },
-      body: JSON.stringify({
-        webhook_id: ALCHEMY_WEBHOOK_ID,
-        addAddresses: [address],
-      }),
-    });
-
-    const data = await resp.json();
-    console.log("Alchemy webhook updated:", data);
-  } catch (err) {
-    console.error("Failed to add address to Alchemy webhook:", err);
-  }
-}
-
-/**
  * GET /deposit-address/:userId/:asset
  */
 router.get("/:userId/:asset", async (req, res) => {
@@ -101,7 +75,7 @@ router.get("/:userId/:asset", async (req, res) => {
       } else throw new Error("No EVM mnemonic/private key");
 
       // ensure this address is subscribed in Alchemy webhook
-      await addAddressToAlchemyWebhook(address);
+      await subscribeAddress(address);
 
     } else if (chain === "btc") {
       derivationPath = `0/${idx}`;
@@ -127,36 +101,6 @@ router.get("/:userId/:asset", async (req, res) => {
   } catch (err) {
     console.error("deposit address error:", err);
     return res.status(500).json({ error: "Failed to allocate address" });
-  }
-});
-
-/**
- * POST /webhook/alchemy
- * - Alchemy calls this with tx data
- * - Match to WalletAddress
- * - Credit user in app
- */
-router.post("/webhook/alchemy", async (req, res) => {
-  try {
-    const event = req.body;
-
-    for (const activity of event.event.activity) {
-      const to = activity.toAddress.toLowerCase();
-      const value = activity.value; // hex or decimal string
-
-      const wallet = await WalletAddress.findOne({ address: to });
-      if (wallet) {
-        // credit user in app
-        console.log(`Crediting ${wallet.userId} with deposit: ${value} ${wallet.asset}`);
-
-        // TODO: update UserBalance model here
-      }
-    }
-
-    res.json({ success: true });
-  } catch (err) {
-    console.error("webhook handler error:", err);
-    res.status(500).json({ error: "Webhook processing failed" });
   }
 });
 
