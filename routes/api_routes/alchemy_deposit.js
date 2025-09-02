@@ -7,6 +7,7 @@ import * as bitcoin from "bitcoinjs-lib";
 import BIP32Factory from "bip32";
 import * as ecc from "tiny-secp256k1";
 import { subscribeAddress } from "../../webhooks/alchemyWatcher.js"
+// import { registerBtcAddress } from "../../webhooks/btcWatcher.js";
 
 const router = express.Router();
 
@@ -85,7 +86,9 @@ router.get("/:userId/:asset", async (req, res) => {
         network: btcNetwork,
       });
       address = btcAddr;
-      // TODO: BTC tracking → via Blockstream / mempool.space API
+
+      // registerBtcAddress(address);
+      
     }
 
     const doc = await WalletAddress.create({

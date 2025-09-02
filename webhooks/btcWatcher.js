@@ -132,25 +132,35 @@ export async function connectBTCWatcher() {
   // ZMQ sockets
   const txSock = new zmq.Subscriber();
   txSock.connect(BTC_ZMQ_TX);
-  txSock.subscribe(); // raw topic-less publisher in Core -> subscribe to all
+  txSock.subscribe("rawtx");
 
   const blockSock = new zmq.Subscriber();
   blockSock.connect(BTC_ZMQ_BLOCK);
-  blockSock.subscribe();
+  blockSock.subscribe("rawblock");
 
   console.log(`BTC watcher connected to ZMQ: tx=${BTC_ZMQ_TX}, block=${BTC_ZMQ_BLOCK}`);
 
   (async () => {
-    for await (const [msg] of txSock) {
-      // message is a Buffer with raw tx hex prefixed by topic only if set; Core sends just body for raw publishers
-      const txHex = msg.toString("hex").match(/^[0-9a-f]+$/i) ? msg.toString() : msg.toString(); // tolerate both
-      try { await handleRawTx(txHex); } catch (e) { console.error("rawtx handle error:", e.message); }
+    for await (const [topic, body] of txSock) {
+        if (topic.toString() !== "rawtx") continue;
+        const txHex = body.toString("hex");
+        try {
+        await handleRawTx(txHex);
+        } catch (e) {
+        console.error("rawtx handle error:", e.message);
+        }
     }
-  })();
+    })();
 
   (async () => {
-    for await (const [msg] of blockSock) {
-      try { await handleRawBlock(msg.toString()); } catch (e) { console.error("rawblock handle error:", e.message); }
+    for await (const [topic, body] of blockSock) {
+        if (topic.toString() !== "rawblock") continue;
+        const blockHex = body.toString("hex");
+        try {
+        await handleRawBlock(blockHex);
+        } catch (e) {
+        console.error("rawblock handle error:", e.message);
+        }
     }
-  })();
+    })();
 }
