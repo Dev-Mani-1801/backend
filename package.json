@@ -20,7 +20,7 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "axios": "^1.10.0",
+    "axios": "^1.11.0",
     "bcrypt": "^6.0.0",
     "bcryptjs": "^2.4.3",
     "bip32": "^5.0.0-rc.0",
@@ -34,6 +34,7 @@
     "express": "^4.21.2",
     "express-session": "^1.17.3",
     "helmet": "^7.0.0",
+    "inquirer": "^12.9.4",
     "ioredis": "^5.7.0",
     "mongoose": "^8.16.4",
     "node-cron": "^4.2.1",
