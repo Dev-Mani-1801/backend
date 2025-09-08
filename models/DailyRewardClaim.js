@@ -1,0 +1,15 @@
+import mongoose from "mongoose";
+
+const { Schema } = mongoose;
+
+const DailyRewardClaimSchema = new Schema(
+  {
+    userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    rewardId: { type: Schema.Types.ObjectId, ref: "DailyReward", required: true },
+    claimedAt: { type: Date, default: Date.now },
+  },
+  { timestamps: true }
+);
+
+const DailyRewardClaim = mongoose.model("DailyRewardClaim", DailyRewardClaimSchema);
+export default DailyRewardClaim;
