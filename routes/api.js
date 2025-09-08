@@ -8,6 +8,7 @@ import subscriptionRoutes from './api_routes/subscriptions.js';
 import faqRoutes from './api_routes/faqs.js';
 import UserRoutes from './api_routes/users.js'
 import HelpRoutes from './api_routes/support.js'
+import ClaimRewardRoutes from './api_routes/dailyRewardController.js'
 
 import alchemyy_deposits from './api_routes/alchemy_deposit.js';
 import wallet_balance_handles from './api_routes/balance.js';
@@ -111,6 +112,7 @@ router.use('/help', HelpRoutes);
 router.use('/users', UserRoutes);
 router.use('/transactions', transactionRoutes);
 router.use('/subscriptionplans', subscriptionRoutes);
+router.use('/ClaimRewardRoutes', ClaimRewardRoutes);
 
 // Crypto Stuff
 
