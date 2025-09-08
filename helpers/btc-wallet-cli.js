@@ -2,6 +2,11 @@ import fs from "fs";
 import inquirer from "inquirer";
 import axios from "axios";
 import * as bitcoin from "bitcoinjs-lib";
+import ECPairFactory from "ecpair";
+import * as ecc from "tiny-secp256k1";
+
+// Setup ECPair for bitcoinjs-lib v6+
+const ECPair = ECPairFactory(ecc);
 
 const ALCHEMY_URL = "https://bitcoin-testnet.g.alchemy.com/v2/Ej90ndV1bIQ8B03IM0JlA";
 const network = bitcoin.networks.testnet;
@@ -20,30 +25,27 @@ function saveWallets(wallets) {
   fs.writeFileSync(WALLET_FILE, JSON.stringify(wallets, null, 2));
 }
 
-// Create new wallet
+// Generate new wallet
 function generateWallet(wallets) {
-  const keyPair = bitcoin.ECPair.makeRandom({ network });
+  const keyPair = ECPair.makeRandom({ network });
   const { address } = bitcoin.payments.p2wpkh({
-    pubkey: keyPair.publicKey,
+    pubkey: Buffer.from(keyPair.publicKey),
     network,
   });
 
-  const w = {
-    address,
-    privateKey: keyPair.toWIF(),
-  };
+  const w = { address, privateKey: keyPair.toWIF() };
   wallets.push(w);
   saveWallets(wallets);
-  console.log("New wallet created:", w.address);
+  console.log("New wallet created:", address);
   return w;
 }
 
-// Import wallet from private key (WIF)
+// Import wallet from WIF
 function importWallet(wallets, wif) {
   try {
-    const keyPair = bitcoin.ECPair.fromWIF(wif, network);
+    const keyPair = ECPair.fromWIF(wif, network);
     const { address } = bitcoin.payments.p2wpkh({
-      pubkey: keyPair.publicKey,
+      pubkey: Buffer.from(keyPair.publicKey),
       network,
     });
     const w = { address, privateKey: wif };
@@ -58,27 +60,32 @@ function importWallet(wallets, wif) {
 
 // List wallets
 function listWallets(wallets) {
-  if (wallets.length === 0) {
-    console.log("No wallets saved yet.");
-  } else {
-    wallets.forEach((w, i) => {
-      console.log(`${i + 1}. ${w.address}`);
+  if (!wallets.length) console.log("No wallets saved yet.");
+  else wallets.forEach((w, i) => console.log(`${i + 1}. ${w.address}`));
+}
+
+// Get balance of an address
+async function getBalance(address) {
+  try {
+    const res = await axios.post(ALCHEMY_URL, {
+      jsonrpc: "2.0",
+      id: 1,
+      method: "getaddressutxos",
+      params: [{ addresses: [address] }],
     });
+
+    const utxos = res.data.result;
+    if (!utxos || utxos.length === 0) return 0;
+
+    const balance = utxos.reduce((sum, u) => sum + u.satoshis, 0);
+    return balance;
+  } catch (err) {
+    console.error("Error fetching balance:", err.response?.data?.error?.message || err.message);
+    return 0;
   }
 }
 
-// Get balance for an address
-async function getBalance(address) {
-  const res = await axios.post(ALCHEMY_URL, {
-    jsonrpc: "2.0",
-    id: 1,
-    method: "getaddressbalance",
-    params: [address],
-  });
-  return res.data.result.balance; // sats
-}
-
-// Transfer sats
+// Send transaction
 async function sendTransaction(sender, recipient, amountSats) {
   const utxosRes = await axios.post(ALCHEMY_URL, {
     jsonrpc: "2.0",
@@ -103,17 +110,15 @@ async function sendTransaction(sender, recipient, amountSats) {
       },
     });
     totalInput += utxo.satoshis;
-    if (totalInput >= amountSats + 500) break;
+    if (totalInput >= amountSats + 500) break; // leave fee
   }
 
   psbt.addOutput({ address: recipient, value: amountSats });
   const fee = 500;
   const change = totalInput - amountSats - fee;
-  if (change > 0) {
-    psbt.addOutput({ address: sender.address, value: change });
-  }
+  if (change > 0) psbt.addOutput({ address: sender.address, value: change });
 
-  const keyPair = bitcoin.ECPair.fromWIF(sender.privateKey, network);
+  const keyPair = ECPair.fromWIF(sender.privateKey, network);
   psbt.signAllInputs(keyPair);
   psbt.finalizeAllInputs();
 
@@ -125,10 +130,10 @@ async function sendTransaction(sender, recipient, amountSats) {
     params: [rawTx],
   });
 
-  return sendRes.data.result; // TXID
+  return sendRes.data.result;
 }
 
-// menu
+// CLI menu
 async function main() {
   const wallets = loadWallets();
 
@@ -150,52 +155,36 @@ async function main() {
       },
     ]);
 
-    if (action === "Add new wallet (generate)") {
-      generateWallet(wallets);
-    } else if (action === "Import wallet (WIF key)") {
-      const { wif } = await inquirer.prompt([
-        { type: "input", name: "wif", message: "Enter WIF private key:" },
-      ]);
+    if (action === "Add new wallet (generate)") generateWallet(wallets);
+    else if (action === "Import wallet (WIF key)") {
+      const { wif } = await inquirer.prompt([{ type: "input", name: "wif", message: "Enter WIF private key:" }]);
       importWallet(wallets, wif.trim());
-    } else if (action === "List wallets") {
-      listWallets(wallets);
-    } else if (action === "Get balance of all wallets") {
+    } else if (action === "List wallets") listWallets(wallets);
+    else if (action === "Get balance of all wallets") {
       for (const w of wallets) {
         const bal = await getBalance(w.address);
         console.log(`${w.address}: ${bal} sats`);
       }
     } else if (action === "Get balance of one wallet") {
-      if (wallets.length === 0) {
-        console.log("No wallets available.");
-        continue;
-      }
+      if (!wallets.length) { console.log("No wallets available."); continue; }
       const { index } = await inquirer.prompt([
         {
           type: "list",
           name: "index",
           message: "Select a wallet:",
-          choices: wallets.map((w, i) => ({
-            name: `${i + 1}. ${w.address}`,
-            value: i,
-          })),
+          choices: wallets.map((w, i) => ({ name: `${i + 1}. ${w.address}`, value: i })),
         },
       ]);
       const bal = await getBalance(wallets[index].address);
       console.log(`${wallets[index].address} balance: ${bal} sats`);
     } else if (action === "Make a transfer") {
-      if (wallets.length === 0) {
-        console.log("No wallets available.");
-        continue;
-      }
+      if (!wallets.length) { console.log("No wallets available."); continue; }
       const { senderIndex } = await inquirer.prompt([
         {
           type: "list",
           name: "senderIndex",
           message: "Select sender wallet:",
-          choices: wallets.map((w, i) => ({
-            name: `${i + 1}. ${w.address}`,
-            value: i,
-          })),
+          choices: wallets.map((w, i) => ({ name: `${i + 1}. ${w.address}`, value: i })),
         },
       ]);
       const { recipient, amount } = await inquirer.prompt([
@@ -206,12 +195,9 @@ async function main() {
         const txid = await sendTransaction(wallets[senderIndex], recipient, amount);
         console.log("Transaction sent! TXID:", txid);
       } catch (err) {
-        console.error("ransfer failed:", err.message);
+        console.error("Transfer failed:", err.message);
       }
-    } else if (action === "Exit") {
-      console.log("Byeee");
-      break;
-    }
+    } else if (action === "Exit") { console.log("Byeee"); break; }
   }
 }
 
