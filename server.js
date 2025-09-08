@@ -9,14 +9,19 @@ import { fileURLToPath } from 'url';
 import adminRoutes from './routes/admin.js';
 import apiRoutes from './routes/api.js';
 import tables_check from './helpers/create_tables.js';
+import connectAlchemyWS from './webhooks/alchemyWatcher.js';
+import { connectBTCWatcher } from "./webhooks/btcWatcher.js";
+import "./cronJobs.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Load env vars
-dotenv.config();
+dotenv.config({ path: "/home/pi/bitcoin_mining_backend/.env" });
 
 const app = express();
+
+await connectAlchemyWS();
 
 await connectDB();
 
@@ -70,6 +75,7 @@ const PORT = process.env.PORT || process.env.ADMIN_PORT || 3001;
 
 app.listen(PORT, () => {
   console.log(`Admin Panel running on port ${PORT}`);
+  connectBTCWatcher().catch(err => console.error("BTC watcher fail:", err));
 });
 
 export default app;
