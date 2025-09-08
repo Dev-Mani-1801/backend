@@ -112,7 +112,7 @@ router.use('/help', HelpRoutes);
 router.use('/users', UserRoutes);
 router.use('/transactions', transactionRoutes);
 router.use('/subscriptionplans', subscriptionRoutes);
-router.use('/ClaimRewardRoutes', ClaimRewardRoutes);
+router.use('/daily-rewards', ClaimRewardRoutes);
 
 // Crypto Stuff
 

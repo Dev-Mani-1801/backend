@@ -49,13 +49,22 @@ router.post("/create", async (req, res) => {
   try {
     const { day, isRecurring, rewardType, amount } = req.body;
 
-    const reward = new DailyReward({ day, isRecurring, rewardType, amount });
+    const reward = new DailyReward({ day: day || null, isRecurring, rewardType, amount });
     await reward.save();
 
-    res.json({ success: true, reward });
+    if (req.xhr || req.headers.accept.includes("application/json")) {
+      return res.json({ success: true, reward });
+    }
+
+    res.redirect("/admin/daily-rewards");
   } catch (err) {
     console.error(err);
-    res.status(400).json({ success: false, error: err.message });
+
+    if (req.xhr || req.headers.accept.includes("application/json")) {
+      return res.status(400).json({ success: false, error: err.message });
+    }
+
+    res.redirect("/admin/daily-rewards?error=" + encodeURIComponent(err.message));
   }
 });
 
@@ -101,6 +110,23 @@ router.post("/claim", async (req, res) => {
     res.json({ success: true, reward });
   } catch (err) {
     console.error(err);
+    res.status(500).json({ success: false, error: "Server error" });
+  }
+});
+
+router.delete("/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const reward = await DailyReward.findByIdAndDelete(id);
+
+    if (!reward) {
+      return res.status(404).json({ success: false, error: "Reward not found" });
+    }
+
+    res.json({ success: true, message: "Reward deleted successfully" });
+  } catch (err) {
+    console.error("Error deleting reward:", err);
     res.status(500).json({ success: false, error: "Server error" });
   }
 });

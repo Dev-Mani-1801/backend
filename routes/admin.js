@@ -5,6 +5,7 @@ import mongoose from 'mongoose';
 import dbActions from '../helpers/db_actions.js';
 import dbHelpers from '../helpers/helper_functions.js';
 import WebUsers from '../models/WebUsers.js';
+import DailyReward from "../models/DailyReward.js";
 
 const { users_count_comparision, transactions_count_comparision, supportTickets_count_comparision } = dbActions;
 const {
@@ -473,3 +474,30 @@ router.get('/faqs', async (req, res) => {
 });
 
 export default router;
+
+router.get("/daily-rewards", async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = 10;
+    const skip = (page - 1) * limit;
+
+    const rewards = await DailyReward.find()
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const totalCount = await DailyReward.countDocuments();
+
+    res.render("dailyRewards", {
+      title: "Daily Rewards",
+      user: req.session.adminUser,
+      rewards,
+      page,
+      limit,
+      totalCount,
+    });
+  } catch (err) {
+    console.error("Error fetching rewards:", err);
+    res.status(500).send("Server error");
+  }
+});
