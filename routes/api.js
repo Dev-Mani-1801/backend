@@ -108,6 +108,39 @@ router.post('/profile/save', requireAuth, async (req, res) => {
   }
 });
 
+router.get("/referrals", async (req, res) => {
+  try {
+    const { code } = req.query;
+
+    if (!code || typeof code !== "string") {
+      return res.status(400).json({
+        success: false,
+        message: "Referral code is required",
+      });
+    }
+
+    // Directly query MongoDB collection instead of User model
+    const usersCollection = mongoose.connection.collection("users");
+
+    const count = await usersCollection.countDocuments({
+      referralUsed: { $regex: `^${code}$`, $options: "i" }, // case-insensitive
+    });
+
+    res.json({
+      success: true,
+      referralCode: code,
+      count,
+    });
+  } catch (error) {
+    console.error("Fetching error:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch user referrals",
+    });
+  }
+});
+
+
 router.use('/faqs', faqRoutes);
 router.use('/help', HelpRoutes);
 router.use('/users', UserRoutes);
