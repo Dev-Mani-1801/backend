@@ -36,6 +36,8 @@ router.post("/balance", async (req, res) => {
     }
 
     let balance = await Balance.findOne({ user: userId });
+    // console.log("Balance: ", balance) // null for new users
+
     if (!balance) {
       balance = await Balance.create({ user: userId });
     }
