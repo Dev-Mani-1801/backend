@@ -12,6 +12,7 @@ import ClaimRewardRoutes from './api_routes/dailyRewardController.js'
 
 import alchemyy_deposits from './api_routes/alchemy_deposit.js';
 import wallet_balance_handles from './api_routes/balance.js';
+import withdrawal_handles from './api_routes/withdrawal_routes.js';
 
 const router = express.Router();
 
@@ -113,6 +114,7 @@ router.use('/users', UserRoutes);
 router.use('/transactions', transactionRoutes);
 router.use('/subscriptionplans', subscriptionRoutes);
 router.use('/daily-rewards', ClaimRewardRoutes);
+router.use('/withdrawals', withdrawal_handles);
 
 // Crypto Stuff
 

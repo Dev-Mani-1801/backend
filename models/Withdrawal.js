@@ -17,7 +17,8 @@ const withdrawalSchema = new mongoose.Schema({
   },
   chain: {
     type: String,
-    required: true,
+    enum: ["BTC", "USDT", "USDC", "LTC", "BANK"],
+    default: "NONE",
   },
   toAddress: {
     type: String,
@@ -32,7 +33,10 @@ const withdrawalSchema = new mongoose.Schema({
     enum: ["PENDING", "APPROVED", "SENT", "CONFIRMED", "FAILED"],
     default: "PENDING",
   },
-  txHash: String,
+  txHash: {
+    type: String,
+    default: null
+  },
   approvedBy: String,
   approvedAt: Date,
 }, { timestamps: { createdAt: "created_at", updatedAt: true } });

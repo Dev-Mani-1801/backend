@@ -6,6 +6,7 @@ import dbActions from '../helpers/db_actions.js';
 import dbHelpers from '../helpers/helper_functions.js';
 import WebUsers from '../models/WebUsers.js';
 import DailyReward from "../models/DailyReward.js";
+import Withdrawal from "../models/Withdrawal.js";
 
 const { users_count_comparision, transactions_count_comparision, supportTickets_count_comparision } = dbActions;
 const {
@@ -495,6 +496,41 @@ router.get("/daily-rewards", async (req, res) => {
       page,
       limit,
       totalCount,
+    });
+  } catch (err) {
+    console.error("Error fetching rewards:", err);
+    res.status(500).send("Server error");
+  }
+});
+
+router.get("/withdrawals", async (req, res) => {
+  try {
+    const { page = 1, limit = 10, search = "" } = req.query;
+    
+    const query = {};
+    if (search) {
+      // Search by userId or status or txHash
+      query.$or = [
+        { userId: { $regex: search, $options: "i" } },
+        { status: { $regex: search, $options: "i" } },
+        { txHash: { $regex: search, $options: "i" } }
+      ];
+    }
+
+    const withdrawals = await Withdrawal.find(query)
+      .sort({ created_at: -1 })
+      .skip((page - 1) * limit)
+      .limit(Number(limit));
+
+    const total = await Withdrawal.countDocuments(query);
+
+    res.render("withdraw", {
+      title: "Withdrawals",
+      user: req.user,
+      withdrawals,
+      page: Number(page),
+      limit: Number(limit),
+      total
     });
   } catch (err) {
     console.error("Error fetching rewards:", err);
