@@ -7,6 +7,7 @@ import dbHelpers from '../helpers/helper_functions.js';
 import WebUsers from '../models/WebUsers.js';
 import DailyReward from "../models/DailyReward.js";
 import Withdrawal from "../models/Withdrawal.js";
+import FirebaseNotifications from "../models/FirebaseNotificationModels.js";
 
 const { users_count_comparision, transactions_count_comparision, supportTickets_count_comparision } = dbActions;
 const {
@@ -537,3 +538,43 @@ router.get("/withdrawals", async (req, res) => {
     res.status(500).send("Server error");
   }
 });
+
+router.get('/fcm', async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = 10;
+    const searchQuery = req.query.q ? req.query.q.trim() : "";
+
+    const query = {};
+    if (searchQuery) {
+      query.$or = [
+        { token: { $regex: searchQuery, $options: 'i' } },
+        { user_id: { $regex: searchQuery, $options: 'i' } }
+      ];
+    }
+
+    const tokens = await FirebaseNotifications.find(query)
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .lean();
+
+    if (req.xhr) {
+      // AJAX request -> return JSON
+      return res.json({ tokens, page, limit });
+    }
+
+    // Normal request -> render EJS
+    res.render('fcm_tokens', {
+      title: 'Firebase Notifications',
+      user: req.user,
+      tokens,
+      page,
+      limit,
+      searchQuery
+    });
+  } catch (err) {
+    console.error('Error fetching FirebaseNotifications:', err);
+    res.status(500).send('Server Error');
+  }
+});
+

@@ -1,0 +1,17 @@
+// models/FirebaseNotificationModels.js
+import mongoose from 'mongoose';
+
+const FirebaseNotificationsSchema = new mongoose.Schema({
+  user_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'users',
+    required: true
+  },
+  token: {
+    type: String,
+    required: true
+  },
+});
+
+const FirebaseNotifications = mongoose.models.FirebaseNotifications || mongoose.model('FirebaseNotifications', FirebaseNotificationsSchema);
+export default FirebaseNotifications;
