@@ -1,6 +1,7 @@
 // api_routes/balance.js
 import express from "express";
 import Balance from "../../models/Balance.js";
+import BalanceHistory from "../../models/BalanceHistory.js";
 
 const router = express.Router();
 
