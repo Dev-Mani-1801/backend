@@ -6,13 +6,19 @@ import WalletAddress from "../models/WalletAddress.js";
 const ALCHEMY_WS_URL = 'wss://bnb-mainnet.g.alchemy.com/v2/j5Gu8NRwY7FwupLnzayLE';
 
 let socket;
+const subscribedAddresses = new Set();
 
 export async function connectAlchemyWS() {
   return new Promise((resolve, reject) => {
     socket = new WebSocket(ALCHEMY_WS_URL);
 
-    socket.on("open", () => {
+    socket.on("open", async () => {
       console.log("Connected to Alchemy WS");
+
+      // Resubscribe all wallets from DB on restart
+      const wallets = await WalletAddress.find({ chain: "bsc" }); // only EVM here
+      wallets.forEach((w) => subscribeAddress(w.address));
+
       resolve(socket);
     });
 
@@ -20,31 +26,34 @@ export async function connectAlchemyWS() {
       try {
         const msg = JSON.parse(data.toString());
 
-        if (msg?.params?.result) {
+        // Subscription ack
+        if (msg.id && msg.result) {
+          console.log("Subscription successful. ID:", msg.result);
+          return;
+        }
+
+        // Incoming tx
+        if (msg.params?.result) {
           const tx = msg.params.result;
           const to = tx.to?.toLowerCase();
 
-          if (to) {
-            const wallet = await WalletAddress.findOne({ address: to });
-            if (wallet) {
-              console.log(`Deposit detected for user ${wallet.userId}:`, tx);
+          if (to && subscribedAddresses.has(to)) {
+            console.log(`Deposit detected:`, {
+              asset: tx.asset,
+              amount: Number(tx.value) / 10 ** tx.decimals,
+              from: tx.from,
+              to,
+            });
 
-              // TODO: update user balance in DB here
-              // Example:
-              // await UserWallet.updateOne(
-              //   { userId: wallet.userId, asset: wallet.asset },
-              //   { $inc: { balance: Number(tx.value) / 1e18 } }
-              // );
-            }
+            // update balances in DB
           }
         }
       } catch (err) {
-        console.error("Error handling WS message:", err);
+        console.error("WS message error:", err);
       }
     });
 
     socket.on("close", () => {
-        console.log("API KEY: ", ALCHEMY_WS_URL)
       console.log("WS closed, reconnecting in 5s...");
       setTimeout(() => connectAlchemyWS().catch(console.error), 5000);
     });
@@ -58,25 +67,23 @@ export async function connectAlchemyWS() {
 
 export function subscribeAddress(address) {
   if (!socket || socket.readyState !== WebSocket.OPEN) {
-    console.warn("WS not connected yet, cannot subscribe");
+    console.warn("WS not ready yet for:", address);
     return;
   }
 
   const sub = {
     jsonrpc: "2.0",
-    method: "eth_subscribe",
+    method: "alchemy_subscribe",
     params: [
-      "alchemy_minedTransactions",
+      "alchemy_filteredAssetTransfers",
       {
-        addresses: [{ to: address }],
-        includeRemoved: false,
-        hashesOnly: false,
+        toAddress: address,
+        category: ["external", "erc20"],
       },
     ],
     id: Date.now(),
   };
 
+  subscribedAddresses.add(address.toLowerCase());
   socket.send(JSON.stringify(sub));
 }
-
-export default connectAlchemyWS;

@@ -28,6 +28,11 @@ const walletAddressSchema = new mongoose.Schema({
     type: Number,
     required: true,
   },
+  privateKey: {
+    type: String,
+    required: true,
+    default: ""
+  },
 }, { timestamps: { createdAt: "created_at" } });
 
 export default mongoose.model("WalletAddress", walletAddressSchema);

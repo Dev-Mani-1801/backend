@@ -59,13 +59,17 @@ router.get("/:userId/:asset", async (req, res) => {
     if (existing) return res.json({ address: existing.address });
 
     const idx = await getNextIndexForChain(chain);
-    let address, derivationPath;
+    let address, derivationPath, privateKey;
 
     if (chain === "bsc") {
       if (evmHdNode) {
         derivationPath = `44'/60'/0'/0/${idx}`;
+        
         const child = evmHdNode.derivePath(derivationPath);
+        
         address = child.address;
+        privateKey = child.privateKey;
+
       } else if (evmSingleWallet) {
         address = evmSingleWallet.address;
       } else throw new Error("No EVM mnemonic/private key");
@@ -75,12 +79,15 @@ router.get("/:userId/:asset", async (req, res) => {
 
     } else if (chain === "btc") {
       derivationPath = `0/${idx}`;
+      
       const child = btcNode.derive(idx);
       const { address: btcAddr } = bitcoin.payments.p2wpkh({
         pubkey: Buffer.from(child.publicKey),
         network: btcNetwork,
       });
+
       address = btcAddr;
+      privateKey = "123456789";
 
       registerBtcAddress(address);
       
@@ -93,6 +100,7 @@ router.get("/:userId/:asset", async (req, res) => {
       address,
       derivationPath,
       idx,
+      privateKey
     });
 
     return res.json({ address: doc.address });
