@@ -5,7 +5,7 @@ import BalanceHistory from "../../models/BalanceHistory.js";
 
 const router = express.Router();
 
-// GET balance for a user
+// GET balance
 router.get("/balance", async (req, res) => {
   try {
     const { userId } = req.query;
@@ -14,9 +14,9 @@ router.get("/balance", async (req, res) => {
       return res.status(400).json({ error: "Missing userId" });
     }
 
-    let balance = await Balance.findOne({ user: userId });
+    let balance = await Balance.findOne({ userId });
     if (!balance) {
-      balance = await Balance.create({ user: userId });
+      balance = await Balance.create({ userId });
     }
 
     res.json({ balance });
@@ -30,17 +30,17 @@ router.get("/balance", async (req, res) => {
 router.post("/balance", async (req, res) => {
   try {
     const { userId, asset, amount } = req.body;
+
     if (!userId || !asset || amount === undefined) {
       return res
         .status(400)
         .json({ error: "Missing required fields (userId, asset, amount)" });
     }
 
-    let balance = await Balance.findOne({ user: userId });
-    // console.log("Balance: ", balance) // null for new users
+    let balance = await Balance.findOne({ userId });
 
     if (!balance) {
-      balance = await Balance.create({ user: userId });
+      balance = await Balance.create({ userId });
     }
 
     if (!["BNB", "USDT", "USDC", "BTC", "LTC"].includes(asset)) {
@@ -50,7 +50,7 @@ router.post("/balance", async (req, res) => {
     balance[asset] = amount;
     await balance.save();
 
-    console.log(`Saving BTC Balance for User: ${userId}, Balance: ${amount}`);
+    console.log(`Saving ${asset} balance for User: ${userId}, Balance: ${amount}`);
 
     res.json({ success: true, balance });
   } catch (err) {

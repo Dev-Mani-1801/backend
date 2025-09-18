@@ -14,6 +14,9 @@ const BTC_MIN_CONFS = Number(process.env.BTC_MIN_CONFS || "1");
 // RPC
 const BTC_RPC_URL = process.env.BTC_RPC_URL || "http://btcuser:btmining_112@127.0.0.1:18332/";
 
+// Sweeper target wallet
+const BTC_HOT_WALLET = process.env.BTC_HOT_WALLET;
+
 // ---- NETWORK ----
 const network =
   BTC_NETWORK === "mainnet" ? bitcoin.networks.bitcoin : bitcoin.networks.testnet;
@@ -35,13 +38,40 @@ export function registerBtcAddress(addr) {
 // ---- helpers ----
 async function rpc(method, params = []) {
   const body = JSON.stringify({ jsonrpc: "2.0", id: Date.now(), method, params });
-  const res = await fetch(BTC_RPC_URL, { method: "POST", body, headers: { "Content-Type": "application/json" } });
+  const res = await fetch(BTC_RPC_URL, {
+    method: "POST",
+    body,
+    headers: { "Content-Type": "application/json" },
+  });
   if (!res.ok) throw new Error(`RPC HTTP ${res.status}`);
   const json = await res.json();
   if (json.error) throw new Error(`RPC ${method} error: ${JSON.stringify(json.error)}`);
   return json.result;
 }
 
+// ---- Sweeper ----
+async function sweepDeposit(dep) {
+  if (!BTC_HOT_WALLET) {
+    console.warn("Sweeper: BTC_HOT_WALLET not configured, skipping sweep");
+    return;
+  }
+
+  try {
+    // Sweep using RPC sendtoaddress
+    const txid = await rpc("sendtoaddress", [BTC_HOT_WALLET, dep.amountNumeric / 1e8]);
+
+    dep.swept = true;
+    dep.sweptTx = txid;
+    dep.sweptAt = new Date();
+    await dep.save();
+
+    console.log(`Sweeper: swept ${dep.amountNumeric} sats from deposit ${dep.txHash} to hot wallet (txid=${txid})`);
+  } catch (e) {
+    console.error("Sweeper error:", e.message);
+  }
+}
+
+// ---- confirmations updater ----
 async function updateConfirmationsForPending(txids) {
   for (const txid of txids) {
     try {
@@ -53,6 +83,7 @@ async function updateConfirmationsForPending(txids) {
 
       if (confs !== dep.confirmations) {
         dep.confirmations = confs;
+
         // credit when reaching threshold & not yet credited
         if (!dep.credited && confs >= BTC_MIN_CONFS) {
           dep.credited = true;
@@ -64,7 +95,11 @@ async function updateConfirmationsForPending(txids) {
             { upsert: true }
           );
           console.log(`BTC credited user ${dep.userId} ${dep.amountNumeric} sats (tx ${txid})`);
+
+          // Trigger sweeper after credit
+          await sweepDeposit(dep);
         }
+
         await dep.save();
       }
     } catch (e) {
@@ -73,7 +108,7 @@ async function updateConfirmationsForPending(txids) {
   }
 }
 
-// parse tx hex and record outputs that hit watched addresses
+// ---- raw tx parser ----
 async function handleRawTx(txHex) {
   const tx = bitcoin.Transaction.fromHex(txHex);
   const txid = tx.getId();
@@ -98,7 +133,7 @@ async function handleRawTx(txHex) {
     const rec = await WalletAddress.findOne({ chain: "btc", address: hit.addr });
     if (!rec) continue;
 
-    // idempotent upsert by txHash+address (your schema had tx_hash unique; if so, this assumes single-credit per tx)
+    // idempotent upsert
     await Deposit.updateOne(
       { txHash: txid, chain: "btc", address: hit.addr },
       {
@@ -109,6 +144,7 @@ async function handleRawTx(txHex) {
           amountNumeric: hit.value, // sats
           confirmations: 0,
           credited: false,
+          swept: false,
           createdAt: new Date(),
         },
       },
@@ -119,14 +155,15 @@ async function handleRawTx(txHex) {
   }
 }
 
-// on new block: refresh confirmations for any recent deposits
+// ---- block handler ----
 async function handleRawBlock(_blockHex) {
   // simple strategy: check the last N uncredited deps each block
   const pending = await Deposit.find({ chain: "btc", credited: false }).limit(200).lean();
-  const txids = [...new Set(pending.map(d => d.txHash))];
+  const txids = [...new Set(pending.map((d) => d.txHash))];
   if (txids.length) await updateConfirmationsForPending(txids);
 }
 
+// ---- main watcher ----
 export async function connectBTCWatcher() {
   await loadWatchedAddresses();
 
@@ -143,29 +180,30 @@ export async function connectBTCWatcher() {
 
   (async () => {
     for await (const [topic, body] of txSock) {
-        if (topic.toString() !== "rawtx") continue;
-        const txHex = body.toString("hex");
-        try {
+      if (topic.toString() !== "rawtx") continue;
+      const txHex = body.toString("hex");
+      try {
         await handleRawTx(txHex);
-        } catch (e) {
+      } catch (e) {
         console.error("rawtx handle error:", e.message);
-        }
+      }
     }
-    })();
+  })();
 
   (async () => {
     for await (const [topic, body] of blockSock) {
-        if (topic.toString() !== "rawblock") continue;
-        const blockHex = body.toString("hex");
-        try {
+      if (topic.toString() !== "rawblock") continue;
+      const blockHex = body.toString("hex");
+      try {
         await handleRawBlock(blockHex);
-        } catch (e) {
+      } catch (e) {
         console.error("rawblock handle error:", e.message);
-        }
+      }
     }
-    })();
+  })();
 }
 
+// ---- utils ----
 export function getWatchedAddressesCount() {
   return watched.size;
 }
