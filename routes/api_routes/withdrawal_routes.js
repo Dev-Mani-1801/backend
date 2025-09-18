@@ -2,6 +2,7 @@ import express from "express";
 import Withdrawal from "../../models/Withdrawal.js";
 
 const router = express.Router();
+const SPEED_API_KEY = 'sk_test_mfoc67r7bbfxZTXAmfoproayetYNmFIrmfoproayCEEsSoxx';
 
 /**
  * GET all withdrawals (admin)
@@ -143,6 +144,44 @@ router.patch("/:id/confirm", async (req, res) => {
     res.json({ message: "Marked as confirmed", withdrawal });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+router.post("/create-speed-payment", async (req, res) => {
+  try {
+    const { amount, currency = 'USD', target_currency = 'SATS', payment_methods = ['lightning'], metadata } = req.body;
+
+    if (!amount) {
+      return res.status(400).json({ error: 'Amount is required' });
+    }
+
+    const response = await fetch('https://api.tryspeed.com/payments', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Basic ' + Buffer.from(SPEED_API_KEY + ':').toString('base64'),
+        'speed-version': '2022-10-15'
+      },
+      body: JSON.stringify({
+        amount,
+        currency,
+        target_currency,
+        payment_methods,
+        metadata
+      })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      return res.status(response.status).json(data);
+    }
+
+    res.json(data);
+
+  } catch (error) {
+    console.error('Error creating Speed payment:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 

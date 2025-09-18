@@ -100,3 +100,30 @@ P.S: if it shows 0 as balance, check if the sync has completed via:
 bitcoin-cli -testnet getblockchaininfo | grep verificationprogress
 
 
+Start Bitcoin Daemon: bitcoind -daemon -datadir=/home/pi/.bitcoin
+
+Config File: 
+
+server=1
+deprecatedrpc=create_bdb
+
+server=1
+rpcuser=btcuser
+rpcpassword=btmining_112
+rpcbind=127.0.0.1
+rpcallowip=127.0.0.1
+rpcport=8332
+zmqpubrawtx=tcp://127.0.0.1:28332
+zmqpubrawblock=tcp://127.0.0.1:28333
+prune=550
+maxconnections=50
+
+Transfer files: 
+
+scp -r ~/Desktop/bitcoin_node/* pi@31.97.189.9:/home/pi/.bitcoin/
+rsync -avz --info=progress2 ~/Desktop/bitcoin_node/ pi@31.97.189.9:/home/pi/.bitcoin/
+
+
+Sync Command: 
+./Bitcoin-Qt -daemon -prune=550 -datadir=$HOME/Desktop/bitcoin_node -conf=$HOME/Desktop/bitcoin_node/bitcoin.conf
+
