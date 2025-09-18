@@ -203,6 +203,8 @@ router.post("/create-speed-payment", async (req, res) => {
       return res.status(response.status).json(data);
     }
 
+    // console.log("SpeedWallet Data: ", data);
+
     res.json(data);
 
   } catch (error) {
