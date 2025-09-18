@@ -38,11 +38,21 @@ export function registerBtcAddress(addr) {
 // ---- helpers ----
 async function rpc(method, params = []) {
   const body = JSON.stringify({ jsonrpc: "2.0", id: Date.now(), method, params });
-  const res = await fetch(BTC_RPC_URL, {
+
+  // Parse from env
+  const url = new URL("http://127.0.0.1:8332");
+  const authUser = process.env.BTC_RPC_USER || "btcuser";
+  const authPass = process.env.BTC_RPC_PASS || "btmining_112";
+
+  const res = await fetch(url.toString(), {
     method: "POST",
     body,
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": "Basic " + Buffer.from(`${authUser}:${authPass}`).toString("base64"),
+    },
   });
+
   if (!res.ok) throw new Error(`RPC HTTP ${res.status}`);
   const json = await res.json();
   if (json.error) throw new Error(`RPC ${method} error: ${JSON.stringify(json.error)}`);
