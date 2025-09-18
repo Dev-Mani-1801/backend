@@ -2,10 +2,10 @@ import mongoose from "mongoose";
 
 const depositSchema = new mongoose.Schema(
   {
-    userId: {
-      type: String,
-      ref: "User",
-      required: true,
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'users',
+      required: true
     },
     asset: {
       type: String,
