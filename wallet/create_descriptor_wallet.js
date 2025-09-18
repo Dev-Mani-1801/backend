@@ -1,23 +1,12 @@
 /**
  * create_descriptor_wallet.js
  *
+ * Creates a descriptor wallet in Bitcoin Core, generates a receive address,
+ * and saves descriptors (both private + public) with XPUB for recovery.
+ *
  * Requirements:
- *  - Node 18+ (or any Node with fetch available; otherwise install node-fetch)
- *  - bitcoin core RPC running and accessible
- *  - Environment variables:
- *      BTC_RPC_USER
- *      BTC_RPC_PASS
- *      BTC_RPC_HOST  (optional, default: 127.0.0.1)
- *      BTC_RPC_PORT  (optional, default: 8332)
- *
- * What it does:
- *  - create a descriptor wallet (if not exists)
- *  - generate a new receive address
- *  - call listdescriptors true to get descriptors including private keys
- *  - save descriptors JSON to ~/.bitcoin/wallets/<walletName>-backup.json
- *
- * Usage:
- *   BTC_RPC_USER=rpcuser BTC_RPC_PASS=rpcpass node create_descriptor_wallet.js
+ *  - Bitcoin Core with RPC enabled
+ *  - Node 18+ (has fetch built-in)
  */
 
 import fs from 'fs';
@@ -38,14 +27,11 @@ const rpcBaseUrl = `http://${RPC_HOST}:${RPC_PORT}`;
 
 let idCounter = 0;
 async function rpcCall(method, params = [], walletName = null) {
-  const url = walletName ? `${rpcBaseUrl}/wallet/${encodeURIComponent(walletName)}` : rpcBaseUrl;
-  const body = {
-    jsonrpc: "1.0",
-    id: `${++idCounter}`,
-    method,
-    params
-  };
+  const url = walletName
+    ? `${rpcBaseUrl}/wallet/${encodeURIComponent(walletName)}`
+    : rpcBaseUrl;
 
+  const body = { jsonrpc: '1.0', id: `${++idCounter}`, method, params };
   const auth = Buffer.from(`${RPC_USER}:${RPC_PASS}`).toString('base64');
 
   const res = await fetch(url, {
@@ -63,11 +49,7 @@ async function rpcCall(method, params = [], walletName = null) {
   }
 
   const json = await res.json();
-  if (json.error) {
-    const err = json.error;
-    const msg = typeof err === 'object' ? `${err.code}: ${err.message}` : String(err);
-    throw new Error(`RPC error: ${msg}`);
-  }
+  if (json.error) throw new Error(`RPC error: ${JSON.stringify(json.error)}`);
   return json.result;
 }
 
@@ -77,61 +59,72 @@ function ensureDir(dirPath) {
 
 (async () => {
   try {
-    // Wallet name with timestamp so it's unlikely to collide
     const walletName = `descriptor-wallet-${Date.now()}`;
-
     console.log(`Creating descriptor wallet: ${walletName}`);
 
-    // createwallet params:
-    // wallet_name, disable_private_keys=false, blank=false, passphrase="", avoid_reuse=false, descriptors=true, load_on_startup=true
+    // Create descriptor wallet
     try {
-      const createRes = await rpcCall('createwallet', [walletName, false, false, "", false, true, true]);
+      const createRes = await rpcCall('createwallet', [
+        walletName, false, false, '', false, true, true
+      ]);
       console.log('createwallet result:', createRes);
     } catch (err) {
-      // If wallet already exists, try to load it
-      const msg = String(err);
-      if (msg.includes('Wallet file verification failed') || msg.includes('already exists')) {
-        console.warn(`Wallet "${walletName}" may already exist or couldn't be created: ${msg}`);
-        console.log(`Attempting to load wallet "${walletName}"...`);
+      if (String(err).includes('already exists')) {
+        console.log(`Wallet ${walletName} exists, loading...`);
         await rpcCall('loadwallet', [walletName]);
       } else {
         throw err;
       }
     }
 
-    // Generate a new address (defaults to the wallet created via wallet endpoint)
+    // New bech32 address
     console.log('Generating a new bech32 address...');
-    const newAddress = await rpcCall('getnewaddress', ["", "bech32"], walletName);
+    const newAddress = await rpcCall('getnewaddress', ['', 'bech32'], walletName);
     console.log('New address:', newAddress);
 
-    // Fetch descriptors with private material included
-    console.log('Fetching descriptors (including private key material)...');
+    // Descriptors with private keys
+    const descriptorsPriv = await rpcCall('listdescriptors', [true], walletName);
+    // Descriptors with only public keys (for XPUB)
+    const descriptorsPub = await rpcCall('listdescriptors', [false], walletName);
 
-    // listdescriptors takes a boolean include_private
-    const descriptors = await rpcCall('listdescriptors', [true], walletName);
+    // Extract XPUB
+    let xpub = null;
+    for (const d of descriptorsPub.descriptors) {
+      const match = d.desc.match(/(xpub[0-9A-Za-z]+)/);
+      if (match) {
+        xpub = match[1];
+        break;
+      }
+    }
 
-    // Prepare backup directory under ~/.bitcoin/wallets
+    if (!xpub) {
+      console.warn('Could not find XPUB in public descriptors!');
+    }
+
+    // Save backup
     const baseDir = path.join(os.homedir(), '.bitcoin', 'wallets');
     ensureDir(baseDir);
-
     const backupPath = path.join(baseDir, `${walletName}-backup.json`);
 
-    // Save a small metadata wrapper along with descriptors
     const saveObject = {
       walletName,
       createdAt: new Date().toISOString(),
-      bitcoindRpc: {
-        host: RPC_HOST,
-        port: RPC_PORT
-      },
-      descriptors
+      bitcoindRpc: { host: RPC_HOST, port: RPC_PORT },
+      newAddress,
+      xpub,
+      descriptors: {
+        private: descriptorsPriv,
+        public: descriptorsPub
+      }
     };
 
     fs.writeFileSync(backupPath, JSON.stringify(saveObject, null, 2), { mode: 0o600 });
 
-    console.log(`Descriptors saved to: ${backupPath}`);
-    console.log('*** IMPORTANT: This file contains private key material (xprv). Keep it secure! ***');
-    console.log(`Wallet ready. Receive address: ${newAddress}`);
+    console.log(`\nDescriptors + XPUB saved to: ${backupPath}`);
+    console.log('*** IMPORTANT: The private section contains xprv, keep this file safe! ***');
+    console.log(`Wallet ready.`);
+    console.log(`Receive address: ${newAddress}`);
+    console.log(`XPUB: ${xpub || 'NOT FOUND'}`);
 
   } catch (err) {
     console.error('Error:', err.message || err);
