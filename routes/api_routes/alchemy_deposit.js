@@ -26,7 +26,7 @@ if (EVM_MNEMONIC) {
 
 // init BTC
 const bip32 = BIP32Factory(ecc);
-const btcNetwork = bitcoin.networks.testnet;
+const btcNetwork = bitcoin.networks.bitcoin;
 let btcNode = BTC_XPUB ? bip32.fromBase58(BTC_XPUB, btcNetwork) : null;
 
 /**

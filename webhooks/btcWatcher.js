@@ -6,13 +6,13 @@ import Deposit from "../models/Deposit.js";
 import Balance from "../models/Balance.js";
 
 // ---- ENV ----
-const BTC_NETWORK = (process.env.BTC_NETWORK || "testnet").toLowerCase(); // "testnet" | "mainnet"
+const BTC_NETWORK = (process.env.BTC_NETWORK || "mainnet").toLowerCase();
 const BTC_ZMQ_TX = process.env.BTC_ZMQ_TX || "tcp://127.0.0.1:28332";
 const BTC_ZMQ_BLOCK = process.env.BTC_ZMQ_BLOCK || "tcp://127.0.0.1:28333";
 const BTC_MIN_CONFS = Number(process.env.BTC_MIN_CONFS || "1");
 
 // RPC
-const BTC_RPC_URL = process.env.BTC_RPC_URL || "http://btcuser:btcpass_please_change_me@127.0.0.1:18332/";
+const BTC_RPC_URL = process.env.BTC_RPC_URL || "http://btcuser:btmining_112@127.0.0.1:18332/";
 
 // ---- NETWORK ----
 const network =
@@ -57,6 +57,7 @@ async function updateConfirmationsForPending(txids) {
         if (!dep.credited && confs >= BTC_MIN_CONFS) {
           dep.credited = true;
           dep.creditedAt = new Date();
+          console.log("BitcoinWatcher Depositing Funds", dep.userId, dep.amountNumeric);
           await Balance.updateOne(
             { userId: dep.userId },
             { $inc: { BTC: dep.amountNumeric } },
