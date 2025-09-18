@@ -13,7 +13,7 @@ const router = express.Router();
 
 // master keys
 const EVM_MNEMONIC = "apple sentence captain mirror prosper magnet erase valid diet inform grant anger";
-const BTC_XPUB = "tpubD6NzVbkrYhZ4XeipKGUSCdiVGgN27DoMTWad4XopHYqHiAinPGxmDywKPb662VtXRhxS89oXHv21kU7PHYR57nQVU6KLdKYSEYcBkPFzq8P";
+const BTC_XPUB = "xpub6CWRa5rJTWCGASu1oWWV6tcqjBSTbBobmGmbuYvhb26XHKri5sm8Fpo584iDx5JPsu6xiqjvsUc7wjnzS3ZEZb7X7bmq3TF7bpSC82Gb9cj";
 
 // init EVM wallet
 let evmHdNode = null;
