@@ -83,14 +83,30 @@ async function sweepDeposit(dep) {
 
 // ---- confirmations updater ----
 async function updateConfirmationsForPending(txids) {
-  for (const txid of txids) {
-    try {
-      const tx = await rpc("getrawtransaction", [txid, true]); // verbose
-      const confs = tx.confirmations || 0;
+  try {
+    // fetch all UTXOs from watch-only wallet
+    const utxos = await rpc("listunspent", [0, 9999999]); // include unconfirmed too
 
+    // index by txid for faster lookup
+    const utxoMap = new Map();
+    for (const u of utxos) {
+      utxoMap.set(`${u.txid}:${u.vout}`, u);
+    }
+
+    for (const txid of txids) {
       const dep = await Deposit.findOne({ txHash: txid, chain: "btc" });
       if (!dep) continue;
 
+      const key = `${dep.txHash}:${dep.vout || 0}`;
+      const u = utxoMap.get(key);
+
+      if (!u) {
+        // not found in UTXO set anymore — could be spent or pruned
+        console.warn(`UTXO for ${txid} not found in listunspent`);
+        continue;
+      }
+
+      const confs = u.confirmations || 0;
       if (confs !== dep.confirmations) {
         dep.confirmations = confs;
 
@@ -99,12 +115,16 @@ async function updateConfirmationsForPending(txids) {
           dep.credited = true;
           dep.creditedAt = new Date();
           console.log("BitcoinWatcher Depositing Funds", dep.userId, dep.amountNumeric);
+
           await Balance.updateOne(
             { userId: dep.userId },
             { $inc: { BTC: dep.amountNumeric } },
             { upsert: true }
           );
-          console.log(`BTC credited user ${dep.userId} ${dep.amountNumeric} sats (tx ${txid})`);
+
+          console.log(
+            `BTC credited user ${dep.userId} ${dep.amountNumeric} sats (tx ${txid})`
+          );
 
           // Trigger sweeper after credit
           await sweepDeposit(dep);
@@ -112,9 +132,9 @@ async function updateConfirmationsForPending(txids) {
 
         await dep.save();
       }
-    } catch (e) {
-      console.error("confirmations update error:", e.message);
     }
+  } catch (e) {
+    console.error("confirmations update error (listunspent):", e.message);
   }
 }
 
@@ -151,10 +171,11 @@ async function handleRawTx(txHex) {
           userId: rec.userId,
           asset: "BTC",
           chain: "btc",
-          amountNumeric: hit.value, // sats
+          amountNumeric: hit.value,
           confirmations: 0,
           credited: false,
           swept: false,
+          vout: hit.n,  // <-- store output index
           createdAt: new Date(),
         },
       },

@@ -4,8 +4,8 @@ const depositSchema = new mongoose.Schema(
   {
     user: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'users',
-      required: true
+      ref: "users",
+      required: true,
     },
     asset: {
       type: String,
@@ -22,7 +22,10 @@ const depositSchema = new mongoose.Schema(
     txHash: {
       type: String,
       required: true,
-      unique: true,
+    },
+    vout: {
+      type: Number,
+      required: true,
     },
     amountNumeric: {
       type: mongoose.Schema.Types.Decimal128,
@@ -55,5 +58,7 @@ const depositSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+depositSchema.index({ txHash: 1, vout: 1 }, { unique: true });
 
 export default mongoose.model("Deposit", depositSchema);

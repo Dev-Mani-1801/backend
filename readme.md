@@ -127,3 +127,9 @@ rsync -avz --info=progress2 ~/Desktop/bitcoin_node/ pi@31.97.189.9:/home/pi/.bit
 Sync Command: 
 ./Bitcoin-Qt -daemon -prune=550 -datadir=$HOME/Desktop/bitcoin_node -conf=$HOME/Desktop/bitcoin_node/bitcoin.conf
 
+Find Transactions using xpub
+
+bitcoin-cli scantxoutset start '[{"desc":"wpkh(xpub-here/*)", "range":1000}]'
+
+
+bitcoin-cli scantxoutset start '[{"desc":"wpkh(xpub-here/0/*)", "range":1000}]'
