@@ -8,7 +8,7 @@ const ALCHEMY_WS_URL = 'wss://bnb-mainnet.g.alchemy.com/v2/j5Gu8NRwY7FwupLnzayLE
 let socket;
 const subscribedAddresses = new Set();
 
-export async function connectAlchemyWS() {
+async function connectAlchemyWS() {
   return new Promise((resolve, reject) => {
     socket = new WebSocket(ALCHEMY_WS_URL);
 
@@ -64,6 +64,8 @@ export async function connectAlchemyWS() {
     });
   });
 }
+
+export default connectAlchemyWS;
 
 export function subscribeAddress(address) {
   if (!socket || socket.readyState !== WebSocket.OPEN) {

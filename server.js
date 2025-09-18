@@ -21,9 +21,9 @@ dotenv.config({ path: "/home/pi/bitcoin_mining_backend/.env" });
 
 const app = express();
 
-await connectAlchemyWS();
-
 await connectDB();
+
+await connectAlchemyWS();
 
 await tables_check();
 
