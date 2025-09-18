@@ -40,7 +40,8 @@ async function rpc(method, params = []) {
   const body = JSON.stringify({ jsonrpc: "2.0", id: Date.now(), method, params });
 
   // Parse from env
-  const url = new URL("http://127.0.0.1:8332");
+  const walletName = process.env.BTC_WALLET || "watchonly";
+  const url = new URL(`http://127.0.0.1:8332/wallet/${walletName}`);
   const authUser = process.env.BTC_RPC_USER || "btcuser";
   const authPass = process.env.BTC_RPC_PASS || "btmining_112";
 

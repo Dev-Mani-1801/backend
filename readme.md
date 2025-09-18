@@ -133,3 +133,20 @@ bitcoin-cli scantxoutset start '[{"desc":"wpkh(xpub-here/*)", "range":1000}]'
 
 
 bitcoin-cli scantxoutset start '[{"desc":"wpkh(xpub-here/0/*)", "range":1000}]'
+
+
+Create a Watcher Wallet: 
+
+// no priv keys and stuff 
+
+bitcoin-cli createwallet watchonly true true "" true
+
+// Get the checksum
+
+bitcoin-cli getdescriptorinfo "wpkh(xpub-here/0/*)"
+
+// provide it with descriptor
+
+bitcoin-cli -rpcwallet=watchonly importdescriptors \
+'[{"desc":"wpkh(xpub-here/0/*)#checksum","active":true,"range":[0,1000],"timestamp":"now"}]'
+
