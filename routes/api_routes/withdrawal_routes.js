@@ -60,11 +60,37 @@ router.get("/user/:userId", async (req, res) => {
  */
 router.post("/", async (req, res) => {
   try {
-    const { userId, asset, chain, toAddress, amountNumeric } = req.body;
-    const withdrawal = await Withdrawal.create({ userId, asset, chain, toAddress, amountNumeric });
-    res.status(201).json(withdrawal);
+    let { userId, asset, chain, toAddress, amountNumeric } = req.body;
+
+    if (!userId || !asset || !chain || !toAddress || !amountNumeric) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    if (chain === "Crypto") {
+      chain = asset; // BTC, USDT, USDC
+    } else if (chain === "BANK") {
+      chain = "BANK";
+    }
+
+    // if (parseFloat(amountNumeric) < 10) {
+    //   return res.status(400).json({ error: "Minimum withdrawal is $10" });
+    // }
+
+    const withdrawal = await Withdrawal.create({
+      userId,
+      asset,
+      chain,
+      toAddress,
+      amountNumeric,
+    });
+
+    res.status(201).json({
+      message: "Withdrawal request created successfully",
+      withdrawal,
+    });
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    console.error("Error creating withdrawal:", err);
+    res.status(400).json({ error: err.message || "Failed to create withdrawal" });
   }
 });
 
