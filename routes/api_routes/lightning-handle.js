@@ -6,7 +6,7 @@ import Client from "lightning-client";
 
 const router = express.Router();
 
-const rpcPath = "/home/pi/.lightning/bitcoin/lightning-rpc";
+const rpcPath = "/home/pi/.lightning/bitcoin";
 
 if (!fs.existsSync(rpcPath)) {
   throw new Error("lightning-rpc not found. Check CLN is running and path is correct.");

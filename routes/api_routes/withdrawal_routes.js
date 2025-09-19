@@ -7,13 +7,13 @@ import fs from "fs";
 const router = express.Router();
 const SPEED_API_KEY = 'sk_test_mfoc67r7bbfxZTXAmfoproayetYNmFIrmfoproayCEEsSoxx';
 
-const rpcPath = "/home/pi/.lightning/bitcoin/lightning-rpc";
-
-if (!fs.existsSync(rpcPath)) {
-  throw new Error("lightning-rpc not found. Check CLN is running and path is correct.");
-}
-
+const rpcPath = "/home/pi/.lightning/bitcoin";
 const client = new Client(rpcPath);
+
+function isValidSpeedLN(address) {
+  const regex = /^[a-zA-Z0-9_-]+@speed\.app$/;
+  return regex.test(address);
+}
 
 /**
  * GET all withdrawals (admin)
@@ -194,6 +194,12 @@ router.post("/create-speed-payment", async (req, res) => {
       metadata,
       speed_wallet_address,
     } = req.body;
+
+    client.getinfo().then(info => {
+      console.log("Connected to CLN:", info.id);
+    }).catch(err => {
+      console.error("Lightning client connection error:", err);
+    });
 
     if (!amount) {
       return res.status(400).json({ error: "Amount is required" });
