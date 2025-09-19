@@ -150,3 +150,8 @@ bitcoin-cli getdescriptorinfo "wpkh(xpub-here/0/*)"
 bitcoin-cli -rpcwallet=watchonly importdescriptors \
 '[{"desc":"wpkh(xpub-here/0/*)#checksum","active":true,"range":[0,1000],"timestamp":"now"}]'
 
+bitcoin-cli -rpcwallet=descriptor-wallet-1758185373792 getbalance
+
+bitcoin-cli -rpcwallet=watchonly importdescriptors '[{"desc":"wpkh(xpub6CWRa5rJTWCGASu1oWWV6tcqjBSTbBobmGmbuYvhb26XHKri5sm8Fpo584iDx5JPsu6xiqjvsUc7wjnzS3ZEZb7X7bmq3TF7bpSC82Gb9cj/0/*)#myyee7kh","active":true,"range":[0,1000],"timestamp":"now"}]'
+
+bitcoin-cli getdescriptorinfo "wpkh(xpub6CWRa5rJTWCGASu1oWWV6tcqjBSTbBobmGmbuYvhb26XHKri5sm8Fpo584iDx5JPsu6xiqjvsUc7wjnzS3ZEZb7X7bmq3TF7bpSC82Gb9cj/0/*)"

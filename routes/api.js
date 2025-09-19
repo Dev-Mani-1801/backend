@@ -14,6 +14,7 @@ import alchemyy_deposits from './api_routes/alchemy_deposit.js';
 import wallet_balance_handles from './api_routes/balance.js';
 import withdrawal_handles from './api_routes/withdrawal_routes.js';
 import firebase_token_handle from './api_routes/firebase_notifications.js';
+import lightning_handles from './api_routes/lightning-handle.js';
 
 const router = express.Router();
 
@@ -155,5 +156,6 @@ router.use('/withdrawals', withdrawal_handles);
 router.use('/deposit-address', alchemyy_deposits);
 router.use('/wallet', wallet_balance_handles);
 router.use('/firebase_tokens', firebase_token_handle);
+router.use('/lightning-handles', lightning_handles);
 
 export default router;
