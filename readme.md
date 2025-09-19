@@ -155,3 +155,7 @@ bitcoin-cli -rpcwallet=descriptor-wallet-1758185373792 getbalance
 bitcoin-cli -rpcwallet=watchonly importdescriptors '[{"desc":"wpkh(xpub6CWRa5rJTWCGASu1oWWV6tcqjBSTbBobmGmbuYvhb26XHKri5sm8Fpo584iDx5JPsu6xiqjvsUc7wjnzS3ZEZb7X7bmq3TF7bpSC82Gb9cj/0/*)#myyee7kh","active":true,"range":[0,1000],"timestamp":"now"}]'
 
 bitcoin-cli getdescriptorinfo "wpkh(xpub6CWRa5rJTWCGASu1oWWV6tcqjBSTbBobmGmbuYvhb26XHKri5sm8Fpo584iDx5JPsu6xiqjvsUc7wjnzS3ZEZb7X7bmq3TF7bpSC82Gb9cj/0/*)"
+
+
+node /home/pi/bitcoin_mining_backend/helpers/derive-child.js "xprv9s21ZrQH143K2vKyFsziz89ahv7mTNwy3EBTEwntdwTvjYKruDXnQH5Mf5qsCAq1N3LyKiDWGXMzcvUufq4dURy7MdduQwTvTvKkhRmNSyR" 0 5
+
