@@ -11,14 +11,14 @@ async function main() {
       useUnifiedTopology: true,
     });
 
-    const addrs = await WalletAddress.find({ chain: "btc" }, { address: 1, userId: 1 }).lean();
+    const addrs = await WalletAddress.find({ chain: "btc" }).lean();
 
     if (!addrs.length) {
       console.log("No BTC addresses found in WalletAddress collection.");
     } else {
       console.log(`Found ${addrs.length} BTC deposit addresses:\n`);
       addrs.forEach((a, i) => {
-        console.log(`${i + 1}. User: ${a.userId || "N/A"}, Address: ${a.address}`);
+        console.log(`${i + 1}.`, a); // print full document
       });
     }
 
