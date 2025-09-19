@@ -160,3 +160,10 @@ bitcoin-cli getdescriptorinfo "wpkh(xpub6CWRa5rJTWCGASu1oWWV6tcqjBSTbBobmGmbuYvh
 node /home/pi/bitcoin_mining_backend/helpers/derive-child.js "xprv9s21ZrQH143K2vKyFsziz89ahv7mTNwy3EBTEwntdwTvjYKruDXnQH5Mf5qsCAq1N3LyKiDWGXMzcvUufq4dURy7MdduQwTvTvKkhRmNSyR" 0 5
 
 node /home/pi/bitcoin_mining_backend/helpers/find-private-by-address.js "xprv9s21ZrQH143K2vKyFsziz89ahv7mTNwy3EBTEwntdwTvjYKruDXnQH5Mf5qsCAq1N3LyKiDWGXMzcvUufq4dURy7MdduQwTvTvKkhRmNSyR" bc1qqy9cuqvkrmwfqcwq9trl9jwklwlnraj3z8w80r 0 0 500 p2wpkh
+
+node /home/pi/bitcoin_mining_backend/helpers/find-private-add-dv.js "xprv9s21ZrQH143K2vKyFsziz89ahv7mTNwy3EBTEwntdwTvjYKruDXnQH5Mf5qsCAq1N3LyKiDWGXMzcvUufq4dURy7MdduQwTvTvKkhRmNSyR" bc1qqy9cuqvkrmwfqcwq9trl9jwklwlnraj3z8w80r "0/8" p2wpkh
+
+node /home/pi/bitcoin_mining_backend/helpers/find-private-add-dv.js "xprv9s21ZrQH143K2vKyFsziz89ahv7mTNwy3EBTEwntdwTvjYKruDXnQH5Mf5qsCAq1N3LyKiDWGXMzcvUufq4dURy7MdduQwTvTvKkhRmNSyR" bc1q04qjfjaxhehuhzhhrna8urlx6z777vqaem735r "0/10" p2wpkh
+
+
+node /home/pi/bitcoin_mining_backend/helpers/get-child-private.js "xprv9s21ZrQH143K2vKyFsziz89ahv7mTNwy3EBTEwntdwTvjYKruDXnQH5Mf5qsCAq1N3LyKiDWGXMzcvUufq4dURy7MdduQwTvTvKkhRmNSyR" 10 p2wpkh

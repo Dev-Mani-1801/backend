@@ -79,12 +79,25 @@ router.get("/:userId/:asset", async (req, res) => {
 
     } else if (chain === "btc") {
       derivationPath = `0/${idx}`;
+
+      console.log("===== BTC CHILD DERIVATION DEBUG =====");
+      console.log("BTC_XPUB:", BTC_XPUB);
+      console.log("btcNode:", btcNode.toBase58());
+      console.log("idx:", idx);
+      console.log("derivationPath label:", derivationPath);
       
       const child = btcNode.derive(idx);
+
+      console.log("child publicKey (hex):", child.publicKey.toString("hex"));
+      console.log("child privateKey exists?:", !!child.privateKey);
+
       const { address: btcAddr } = bitcoin.payments.p2wpkh({
         pubkey: Buffer.from(child.publicKey),
         network: btcNetwork,
       });
+
+      console.log("Generated BTC address:", btcAddr);
+      console.log("======================================");
 
       address = btcAddr;
       privateKey = "123456789";
