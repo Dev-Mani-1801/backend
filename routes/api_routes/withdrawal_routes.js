@@ -1,8 +1,19 @@
 import express from "express";
 import Withdrawal from "../../models/Withdrawal.js";
+import fetch from "node-fetch";
+import Client from "lightning-client";
+import fs from "fs";
 
 const router = express.Router();
 const SPEED_API_KEY = 'sk_test_mfoc67r7bbfxZTXAmfoproayetYNmFIrmfoproayCEEsSoxx';
+
+const rpcPath = "/home/pi/.lightning/bitcoin/lightning-rpc";
+
+if (!fs.existsSync(rpcPath)) {
+  throw new Error("lightning-rpc not found. Check CLN is running and path is correct.");
+}
+
+const client = new Client(rpcPath);
 
 /**
  * GET all withdrawals (admin)
@@ -175,41 +186,71 @@ router.patch("/:id/confirm", async (req, res) => {
 
 router.post("/create-speed-payment", async (req, res) => {
   try {
-    const { amount, currency = 'USD', target_currency = 'SATS', payment_methods = ['lightning'], metadata } = req.body;
+    const {
+      amount,
+      currency = "USD",
+      target_currency = "SATS",
+      payment_methods = ["lightning"],
+      metadata,
+      speed_wallet_address,
+    } = req.body;
 
     if (!amount) {
-      return res.status(400).json({ error: 'Amount is required' });
+      return res.status(400).json({ error: "Amount is required" });
     }
 
-    const response = await fetch('https://api.tryspeed.com/payments', {
-      method: 'POST',
+    if (!speed_wallet_address || !isValidSpeedLN(speed_wallet_address)) {
+      return res.status(400).json({ error: "Invalid Speed wallet address" });
+    }
+
+    // 1. Request invoice from Speed API
+    const response = await fetch("https://api.tryspeed.com/payments", {
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Basic ' + Buffer.from(SPEED_API_KEY + ':').toString('base64'),
-        'speed-version': '2022-10-15'
+        "Content-Type": "application/json",
+        Authorization:
+          "Basic " +
+          Buffer.from(SPEED_API_KEY + ":").toString("base64"),
+        "speed-version": "2022-10-15",
       },
       body: JSON.stringify({
         amount,
         currency,
         target_currency,
         payment_methods,
-        metadata
-      })
+        metadata,
+        to: speed_wallet_address, // tell Speed who to pay
+      }),
     });
 
     const data = await response.json();
-
     if (!response.ok) {
       return res.status(response.status).json(data);
     }
 
-    // console.log("SpeedWallet Data: ", data);
+    if (!data.invoice || !data.invoice.bolt11) {
+      return res
+        .status(500)
+        .json({ error: "Speed API did not return a valid invoice" });
+    }
 
-    res.json(data);
+    const bolt11 = data.invoice.bolt11;
 
+    // 2. Pay the invoice using Core Lightning
+    const payment = await client.pay(bolt11);
+
+    // 3. Return result
+    res.json({
+      status: "paid",
+      preimage: payment.payment_preimage,
+      hash: payment.payment_hash,
+      amount_msat: payment.amount_msat,
+      fees_msat: payment.fee_msat,
+      speed_response: data,
+    });
   } catch (error) {
-    console.error('Error creating Speed payment:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error("Error creating Speed payment:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 
