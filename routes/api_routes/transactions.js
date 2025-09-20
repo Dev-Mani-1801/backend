@@ -1,5 +1,7 @@
 import express from 'express';
 import Transaction from '../../models/Transaction.js';
+import Deposit from '../../models/Deposit.js';
+import Withdrawal from '../../models/Withdrawal.js';
 import mongoose from 'mongoose';
 
 const router = express.Router();
