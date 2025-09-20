@@ -6,14 +6,18 @@ import { ethers, Wallet as EthersWallet } from "ethers";
 import * as bitcoin from "bitcoinjs-lib";
 import BIP32Factory from "bip32";
 import * as ecc from "tiny-secp256k1";
-import { subscribeAddress } from "../../webhooks/alchemyWatcher.js"
+import { subscribeAddress } from "../../webhooks/alchemyWatcher.js";
 import { registerBtcAddress } from "../../webhooks/btcWatcher.js";
 
 const router = express.Router();
 
 // master keys
-const EVM_MNEMONIC = "apple sentence captain mirror prosper magnet erase valid diet inform grant anger";
-const BTC_XPUB = "xpub6CWRa5rJTWCGASu1oWWV6tcqjBSTbBobmGmbuYvhb26XHKri5sm8Fpo584iDx5JPsu6xiqjvsUc7wjnzS3ZEZb7X7bmq3TF7bpSC82Gb9cj";
+const EVM_MNEMONIC =
+  "apple sentence captain mirror prosper magnet erase valid diet inform grant anger";
+
+const BTC_XPRV =
+  process.env.BTC_XPRV ||
+  "xprv9s21ZrQH143K2vKyFsziz89ahv7mTNwy3EBTEwntdwTvjYKruDXnQH5Mf5qsCAq1N3LyKiDWGXMzcvUufq4dURy7MdduQwTvTvKkhRmNSyR";
 
 // init EVM wallet
 let evmHdNode = null;
@@ -27,7 +31,7 @@ if (EVM_MNEMONIC) {
 // init BTC
 const bip32 = BIP32Factory(ecc);
 const btcNetwork = bitcoin.networks.bitcoin;
-let btcNode = BTC_XPUB ? bip32.fromBase58(BTC_XPUB, btcNetwork) : null;
+let btcRootNode = BTC_XPRV ? bip32.fromBase58(BTC_XPRV, btcNetwork) : null;
 
 /**
  * Helpers
@@ -64,46 +68,50 @@ router.get("/:userId/:asset", async (req, res) => {
     if (chain === "bsc") {
       if (evmHdNode) {
         derivationPath = `44'/60'/0'/0/${idx}`;
-        
+
         const child = evmHdNode.derivePath(derivationPath);
-        
+
         address = child.address;
         privateKey = child.privateKey;
-
       } else if (evmSingleWallet) {
         address = evmSingleWallet.address;
+        privateKey = evmSingleWallet.privateKey;
       } else throw new Error("No EVM mnemonic/private key");
 
       // ensure this address is subscribed in Alchemy webhook
       await subscribeAddress(address);
-
     } else if (chain === "btc") {
-      derivationPath = `0/${idx}`;
+      // Core-compatible derivation path: m/84'/0'/0'/0/idx
+      derivationPath = `84'/0'/0'/0/${idx}`;
 
       console.log("===== BTC CHILD DERIVATION DEBUG =====");
-      console.log("BTC_XPUB:", BTC_XPUB);
-      console.log("btcNode:", btcNode.toBase58());
+      console.log("BTC_XPRV:", BTC_XPRV);
       console.log("idx:", idx);
-      console.log("derivationPath label:", derivationPath);
-      
-      const child = btcNode.derive(idx);
+      console.log("derivationPath:", derivationPath);
 
-      console.log("child publicKey (hex):", child.publicKey.toString("hex"));
-      console.log("child privateKey exists?:", !!child.privateKey);
+      // derive full path
+      const child = btcRootNode.derivePath(derivationPath);
 
+      if (!child.privateKey) {
+        throw new Error("BTC child does not have private key (are you using xpub?)");
+      }
+
+      // get segwit address
       const { address: btcAddr } = bitcoin.payments.p2wpkh({
         pubkey: Buffer.from(child.publicKey),
         network: btcNetwork,
       });
 
+      console.log("child publicKey (hex):", child.publicKey.toString("hex"));
       console.log("Generated BTC address:", btcAddr);
-      console.log("======================================");
 
       address = btcAddr;
-      privateKey = "123456789";
+      privateKey = child.toWIF();
+
+      console.log("Wallet Private Key: ", privateKey);
+      console.log("======================================");
 
       registerBtcAddress(address);
-      
     }
 
     const doc = await WalletAddress.create({
@@ -113,10 +121,10 @@ router.get("/:userId/:asset", async (req, res) => {
       address,
       derivationPath,
       idx,
-      privateKey
+      privateKey,
     });
 
-    return res.json({ address: doc.address });
+    return res.json({ address: doc.address, privateKey: doc.privateKey });
   } catch (err) {
     console.error("deposit address error:", err);
     return res.status(500).json({ error: "Failed to allocate address" });

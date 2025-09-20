@@ -167,3 +167,5 @@ node /home/pi/bitcoin_mining_backend/helpers/find-private-add-dv.js "xprv9s21ZrQ
 
 
 node /home/pi/bitcoin_mining_backend/helpers/get-child-private.js "xprv9s21ZrQH143K2vKyFsziz89ahv7mTNwy3EBTEwntdwTvjYKruDXnQH5Mf5qsCAq1N3LyKiDWGXMzcvUufq4dURy7MdduQwTvTvKkhRmNSyR" 10 p2wpkh
+
+node /home/pi/bitcoin_mining_backend/helpers/child-priv-key.js "xprv9s21ZrQH143K2vKyFsziz89ahv7mTNwy3EBTEwntdwTvjYKruDXnQH5Mf5qsCAq1N3LyKiDWGXMzcvUufq4dURy7MdduQwTvTvKkhRmNSyR/44h/0h/0h/0" 10 pkh
