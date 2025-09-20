@@ -88,7 +88,7 @@ router.get('/all/:userId', async (req, res) => {
 
     // 1. Fetch deposits and withdrawals
     const [deposits, withdrawals] = await Promise.all([
-      Deposit.find({ user: userId }).sort({ createdAt: -1 }).lean(),
+      Deposit.find({ userId }).sort({ createdAt: -1 }).lean(),
       Withdrawal.find({ userId }).sort({ created_at: -1 }).lean()
     ]);
 

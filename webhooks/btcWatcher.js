@@ -164,6 +164,8 @@ async function handleRawTx(txHex) {
     const rec = await WalletAddress.findOne({ chain: "btc", address: hit.addr });
     if (!rec) continue;
 
+    const BTC_VALUE = hit.value / 1e8;
+
     // idempotent upsert
     await Deposit.updateOne(
       { txHash: txid, chain: "btc", address: hit.addr },
@@ -172,7 +174,7 @@ async function handleRawTx(txHex) {
           userId: rec.userId,
           asset: "BTC",
           chain: "btc",
-          amountNumeric: hit.value,
+          amountNumeric: BTC_VALUE,
           confirmations: 0,
           credited: false,
           swept: false,
