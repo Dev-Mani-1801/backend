@@ -119,7 +119,7 @@ async function updateConfirmationsForPending(txids) {
 
           await Balance.updateOne(
             { user: dep.userId },
-            { $inc: { BTC: dep.amountNumeric } },
+            { $inc: { BTC_DEPOSIT: dep.amountNumeric } },
             { upsert: true }
           );
 

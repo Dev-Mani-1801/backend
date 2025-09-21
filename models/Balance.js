@@ -10,6 +10,7 @@ const balanceSchema = new mongoose.Schema({
   USDT: { type: mongoose.Schema.Types.Decimal128, default: 0 },
   USDC: { type: mongoose.Schema.Types.Decimal128, default: 0 },
   BTC: { type: mongoose.Schema.Types.Decimal128, default: 0 },
+  BTC_DEPOSIT: { type: mongoose.Schema.Types.Decimal128, default: 0 },
   LTC: { type: mongoose.Schema.Types.Decimal128, default: 0 },
 }, { timestamps: true });
 
