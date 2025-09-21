@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import Deposit from "../models/Deposit.js";
+import Balance from "../models/Balance.js";
 
 const MONGO_URI = "mongodb+srv://growthdev1:Ji0LlqjCuFzlYP9s@cluster0.zgxt7d9.mongodb.net/fakeminingapp?retryWrites=true&w=majority";
 
@@ -13,6 +14,12 @@ await Deposit.updateOne(
   { _id: new mongoose.Types.ObjectId("68cbfe10e9e8b5ceaba6920c") },
   { $set: { amountNumeric: mongoose.Types.Decimal128.fromString("0.00017") } }
 );
+
+// await Balance.updateOne(
+//   { user: "68cbc9fc44790a54101e1b70" },
+//   { $inc: { BTC: 0.00017 } },
+//   { upsert: true }
+// );
 
 console.log("Update successful");
 await mongoose.disconnect();

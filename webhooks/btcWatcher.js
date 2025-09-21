@@ -118,13 +118,13 @@ async function updateConfirmationsForPending(txids) {
           console.log("BitcoinWatcher Depositing Funds", dep.userId, dep.amountNumeric);
 
           await Balance.updateOne(
-            { userId: dep.userId },
+            { user: dep.userId },
             { $inc: { BTC: dep.amountNumeric } },
             { upsert: true }
           );
 
           console.log(
-            `BTC credited user ${dep.userId} ${dep.amountNumeric} sats (tx ${txid})`
+            `BTC credited user ${dep.userId} ${dep.amountNumeric} BTC (tx ${txid})`
           );
 
           // Trigger sweeper after credit
@@ -164,7 +164,7 @@ async function handleRawTx(txHex) {
     const rec = await WalletAddress.findOne({ chain: "btc", address: hit.addr });
     if (!rec) continue;
 
-    const BTC_VALUE = hit.value / 1e8;
+    const BTC_VALUE = hit.value / 1e8; // sats to BTC
 
     // idempotent upsert
     await Deposit.updateOne(
