@@ -15,7 +15,7 @@ const BTC_MIN_CONFS = Number(process.env.BTC_MIN_CONFS || "1");
 const BTC_RPC_URL = process.env.BTC_RPC_URL || "http://btcuser:btmining_112@127.0.0.1:18332/";
 
 // Sweeper target wallet
-const BTC_HOT_WALLET = process.env.BTC_HOT_WALLET;
+const BTC_HOT_WALLET = process.env.BTC_HOT_WALLET || "bc1qedzf2qx3m6f4thfhgwn3h5dt2226f3t3tyzgaf";
 
 // ---- NETWORK ----
 const network =
