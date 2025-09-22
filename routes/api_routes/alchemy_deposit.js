@@ -131,4 +131,82 @@ router.get("/:userId/:asset", async (req, res) => {
   }
 });
 
+router.get("/all/:userId", async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    // Supported assets
+    const assets = ["BTC", "BNB", "USDT", "USDC"];
+    const results = {};
+
+    for (const asset of assets) {
+      let chain;
+      if (["BNB", "USDT", "USDC"].includes(asset)) chain = "bsc";
+      else if (asset === "BTC") chain = "btc";
+      else continue;
+
+      // Check if wallet already exists
+      let existing = await WalletAddress.findOne({ userId, asset, chain });
+      if (existing) {
+        results[asset] = existing.address;
+        continue;
+      }
+
+      // Otherwise, create new wallet
+      const idx = await getNextIndexForChain(chain);
+      let address, derivationPath, privateKey;
+
+      if (chain === "bsc") {
+        if (evmHdNode) {
+          derivationPath = `44'/60'/0'/0/${idx}`;
+          const child = evmHdNode.derivePath(derivationPath);
+          address = child.address;
+          privateKey = child.privateKey;
+        } else if (evmSingleWallet) {
+          address = evmSingleWallet.address;
+          privateKey = evmSingleWallet.privateKey;
+        } else {
+          throw new Error("No EVM mnemonic/private key");
+        }
+
+        await subscribeAddress(address);
+      } else if (chain === "btc") {
+        derivationPath = `84'/0'/0'/0/${idx}`;
+        const child = btcRootNode.derivePath(derivationPath);
+
+        if (!child.privateKey) {
+          throw new Error("BTC child does not have private key (are you using xpub?)");
+        }
+
+        const { address: btcAddr } = bitcoin.payments.p2wpkh({
+          pubkey: Buffer.from(child.publicKey),
+          network: btcNetwork,
+        });
+
+        address = btcAddr;
+        privateKey = child.toWIF();
+
+        registerBtcAddress(address);
+      }
+
+      const doc = await WalletAddress.create({
+        userId,
+        chain,
+        asset,
+        address,
+        derivationPath,
+        idx,
+        privateKey,
+      });
+
+      results[asset] = doc.address;
+    }
+
+    return res.json(results);
+  } catch (err) {
+    console.error("deposit address error:", err);
+    return res.status(500).json({ error: "Failed to allocate address" });
+  }
+});
+
 export default router;
