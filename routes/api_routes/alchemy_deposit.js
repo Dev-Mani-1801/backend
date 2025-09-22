@@ -131,7 +131,7 @@ router.get("/:userId/:asset", async (req, res) => {
   }
 });
 
-router.get("/all/:userId", async (req, res) => {
+router.get("/:userId", async (req, res) => {
   try {
     const { userId } = req.params;
 
