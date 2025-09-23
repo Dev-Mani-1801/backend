@@ -82,6 +82,61 @@ async function sweepDeposit(dep) {
   }
 }
 
+async function confirmBtcPayment(userId, btcValue) {
+  try {
+    // BTC price from Binance
+    const res = await axios.get("https://api.binance.com/api/v3/ticker/price", {
+      params: { symbol: "BTCUSDT" },
+    });
+
+    const btcPrice = parseFloat(res.data.price); // live BTC price in USD
+
+    // Convert BTC to USD
+    const usdValue = btcValue * btcPrice;
+
+    console.log(`BTC Value: ${btcValue}, USD Equivalent: ${usdValue}`);
+
+    // unpaid user plans
+    const unpaidPlans = await Userplan.find({
+      user: userId,
+      paid: false,
+    });
+
+    if (!unpaidPlans.length) {
+      console.log("No unpaid plans found for user.");
+      return { success: false, message: "No unpaid plans." };
+    }
+
+    // Compare values with tolerance and update
+    let updatedCount = 0;
+
+    for (let plan of unpaidPlans) {
+      const planAmount = parseFloat(plan.amount.toString()); // Decimal128 → string → float
+
+      // allow tolerance of ±2 USD
+      if (Math.abs(planAmount - usdValue) <= 2) {
+        plan.paid = true;
+        await plan.save();
+        updatedCount++;
+        console.log(`Plan ${plan._id} marked as paid`);
+      } else {
+        console.log(
+          `Plan ${plan._id} not marked as paid. Expected ~${planAmount}, got ${usdValue}`
+        );
+      }
+    }
+
+    return {
+      success: true,
+      message: `${updatedCount} plan(s) updated.`,
+      updatedCount,
+    };
+  } catch (err) {
+    console.error("Error confirming BTC payment:", err.message);
+    return { success: false, message: "Error confirming BTC payment." };
+  }
+}
+
 // ---- confirmations updater ----
 async function updateConfirmationsForPending(txids) {
   try {
@@ -116,6 +171,10 @@ async function updateConfirmationsForPending(txids) {
           dep.credited = true;
           dep.creditedAt = new Date();
           console.log("BitcoinWatcher Depositing Funds", dep.userId, dep.amountNumeric);
+
+          const user_sub_res = await confirmBtcPayment(dep.userId, dep.amountNumeric);
+
+          console.log("User Sub Update Response: ", user_sub_res);
 
           await Balance.updateOne(
             { user: dep.userId },
