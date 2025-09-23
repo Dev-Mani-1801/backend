@@ -92,6 +92,10 @@ router.get('/all/:userId', async (req, res) => {
       Withdrawal.find({ userId }).sort({ created_at: -1 }).lean()
     ]);
 
+    // console.log("User Transactions - UserID: ", userId);
+    // console.log("User Transactions - Deposits: ", deposits);
+    // console.log("User Transactions - Withdraws: ", withdrawals);
+
     // 2. Collect all unique assets to fetch prices
     const assets = new Set([
       ...deposits.map(d => d.asset.toUpperCase()),
@@ -108,9 +112,57 @@ router.get('/all/:userId', async (req, res) => {
 
     let prices = {};
     if (ids.length > 0) {
-      const priceRes = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd`);
-      const priceJson = await priceRes.json();
-      prices = priceJson;
+      try {
+        // Try CoinGecko first
+        const priceRes = await fetch(
+          `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd`
+        );
+
+        if (!priceRes.ok) throw new Error(`CoinGecko error: ${priceRes.status}`);
+
+        const priceJson = await priceRes.json();
+        prices = priceJson;
+      } catch (err) {
+        console.warn("CoinGecko failed, falling back to Binance:", err.message);
+
+        // Binance fallback
+        try {
+          for (const id of ids) {
+            let symbol;
+
+            switch (id.toLowerCase()) {
+              case "bitcoin":
+                symbol = "BTCUSDT";
+                break;
+              case "ethereum":
+                symbol = "ETHUSDT";
+                break;
+              case "tether":
+                symbol = "USDTUSDT";
+                prices[id] = { usd: 1 };
+                continue;
+              case "usd-coin":
+                symbol = "USDCUSDT";
+                prices[id] = { usd: 1 };
+                continue;
+              default:
+                console.warn(`No Binance mapping for ${id}`);
+                continue;
+            }
+
+            const res = await fetch(
+              `https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`
+            );
+
+            if (!res.ok) throw new Error(`Binance error: ${res.status}`);
+
+            const data = await res.json();
+            prices[id] = { usd: parseFloat(data.price) };
+          }
+        } catch (binanceErr) {
+          console.error("Binance fallback failed:", binanceErr.message);
+        }
+      }
     }
 
     // 3. Convert amount to USD
