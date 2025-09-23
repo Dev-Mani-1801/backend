@@ -111,4 +111,31 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
+// GET total hashpower for a user
+router.get("/hashpower/:userId", async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    if (!userId) {
+      return res.status(400).json({ error: "Missing userId" });
+    }
+
+    // Find all Userplan records for this user that are paid
+    const userPlans = await Userplan.find({ user: userId, paid: true });
+
+    if (!userPlans.length) {
+      return res.json({ hashpower: 0 });
+    }
+
+    // Sum the hashrate
+    const totalHashrate = userPlans.reduce((acc, plan) => acc + plan.hashrate, 0);
+
+    return res.json({ hashpower: totalHashrate });
+  } catch (err) {
+    console.error("Error fetching user hashpower:", err);
+    return res.status(500).json({ error: "Server error" });
+  }
+});
+
+
 export default router;
