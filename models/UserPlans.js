@@ -17,6 +17,7 @@ const UserplanSchema = new mongoose.Schema({
     default: null
   },
   amount: { type: mongoose.Schema.Types.Decimal128, default: 0 },
+  amount_crypto: { type: mongoose.Schema.Types.Decimal128, default: 0 },
   hashrate: {
     type: Number,
     required: true,
