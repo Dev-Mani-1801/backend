@@ -15,6 +15,7 @@ import wallet_balance_handles from './api_routes/balance.js';
 import withdrawal_handles from './api_routes/withdrawal_routes.js';
 import firebase_token_handle from './api_routes/firebase_notifications.js';
 import lightning_handles from './api_routes/lightning-handle.js';
+import notification_handles from './api_routes/notification_handles.js'
 
 const router = express.Router();
 
@@ -150,6 +151,7 @@ router.use('/transactions', transactionRoutes);
 router.use('/subscriptionplans', subscriptionRoutes);
 router.use('/daily-rewards', ClaimRewardRoutes);
 router.use('/withdrawals', withdrawal_handles);
+router.use('/notification-preferences', notification_handles);
 
 // Crypto Stuff
 
