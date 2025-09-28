@@ -82,130 +82,142 @@ router.get('/:userId', async (req, res) => {
   }
 });
 
+// helper function
+async function getUserTransactions(userId, days = null) {
+  // build date filter if days passed
+  let depositFilter = { userId };
+  let withdrawalFilter = { userId };
+
+  if (days) {
+    const fromDate = new Date();
+    fromDate.setDate(fromDate.getDate() - days);
+
+    depositFilter.createdAt = { $gte: fromDate };
+    withdrawalFilter.created_at = { $gte: fromDate };
+  }
+
+  // 1. Fetch deposits and withdrawals
+  const [deposits, withdrawals] = await Promise.all([
+    Deposit.find(depositFilter).sort({ createdAt: -1 }).lean(),
+    Withdrawal.find(withdrawalFilter).sort({ created_at: -1 }).lean()
+  ]);
+
+  // 2. Collect all unique assets
+  const assets = new Set([
+    ...deposits.map(d => d.asset.toUpperCase()),
+    ...withdrawals.map(w => w.asset.toUpperCase())
+  ]);
+
+  const assetMap = { BTC: 'bitcoin', USDT: 'tether', USDC: 'usd-coin' };
+
+  const ids = Array.from(assets)
+    .map(a => assetMap[a])
+    .filter(Boolean)
+    .join(',');
+
+  let prices = {};
+  if (ids.length > 0) {
+    try {
+      // CoinGecko first
+      const priceRes = await fetch(
+        `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd`
+      );
+      if (!priceRes.ok) throw new Error(`CoinGecko error: ${priceRes.status}`);
+      prices = await priceRes.json();
+    } catch (err) {
+      console.warn("CoinGecko failed, falling back to Binance:", err.message);
+      // Binance fallback
+      try {
+        for (const id of ids.split(",")) {
+          let symbol;
+          switch (id.toLowerCase()) {
+            case "bitcoin":
+              symbol = "BTCUSDT"; break;
+            case "ethereum":
+              symbol = "ETHUSDT"; break;
+            case "tether":
+              prices[id] = { usd: 1 }; continue;
+            case "usd-coin":
+              prices[id] = { usd: 1 }; continue;
+            default:
+              console.warn(`No Binance mapping for ${id}`); continue;
+          }
+
+          const res = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`);
+          if (!res.ok) throw new Error(`Binance error: ${res.status}`);
+          const data = await res.json();
+          prices[id] = { usd: parseFloat(data.price) };
+        }
+      } catch (binanceErr) {
+        console.error("Binance fallback failed:", binanceErr.message);
+      }
+    }
+  }
+
+  // 3. Convert helper
+  const convertToUSD = (asset, amount) => {
+    const id = assetMap[asset.toUpperCase()];
+    if (!id || !prices[id]) return null;
+    const usdPrice = prices[id].usd || 0;
+    return (parseFloat(amount.toString()) * usdPrice).toFixed(2);
+  };
+
+  // 4. Format deposits
+  const depositTxs = deposits.map(d => ({
+    type: 'DEPOSIT',
+    method: d.chain,
+    date: d.createdAt.toISOString(),
+    amount: parseFloat(d.amountNumeric.toString()).toFixed(2),
+    amountNumeric: { $numberDecimal: convertToUSD(d.asset, d.amountNumeric) },
+    isPositive: true
+  }));
+
+  // 5. Format withdrawals
+  const withdrawalTxs = withdrawals.map(w => ({
+    type: 'WITHDRAW',
+    method: w.chain,
+    date: w.created_at.toISOString(),
+    amount: parseFloat(w.amountNumeric.toString()).toFixed(2),
+    amountNumeric: { $numberDecimal: convertToUSD(w.asset, w.amountNumeric) },
+    isPositive: false
+  }));
+
+  // 6. Merge & sort
+  const transactions = [...depositTxs, ...withdrawalTxs].sort(
+    (a, b) => new Date(b.date) - new Date(a.date)
+  );
+
+  console.log("Transactions: ", transactions);
+
+  return {
+    count: transactions.length,
+    transactions
+  };
+}
+
+// all transactions
 router.get('/all/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
-
-    // 1. Fetch deposits and withdrawals
-    const [deposits, withdrawals] = await Promise.all([
-      Deposit.find({ userId }).sort({ createdAt: -1 }).lean(),
-      Withdrawal.find({ userId }).sort({ created_at: -1 }).lean()
-    ]);
-
-    // console.log("User Transactions - UserID: ", userId);
-    // console.log("User Transactions - Deposits: ", deposits);
-    // console.log("User Transactions - Withdraws: ", withdrawals);
-
-    // 2. Collect all unique assets to fetch prices
-    const assets = new Set([
-      ...deposits.map(d => d.asset.toUpperCase()),
-      ...withdrawals.map(w => w.asset.toUpperCase())
-    ]);
-
-    // Map asset symbols to CoinGecko IDs
-    const assetMap = { BTC: 'bitcoin', USDT: 'tether', USDC: 'usd-coin' };
-
-    const ids = Array.from(assets)
-      .map(a => assetMap[a])
-      .filter(Boolean)
-      .join(',');
-
-    let prices = {};
-    if (ids.length > 0) {
-      try {
-        // Try CoinGecko first
-        const priceRes = await fetch(
-          `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd`
-        );
-
-        if (!priceRes.ok) throw new Error(`CoinGecko error: ${priceRes.status}`);
-
-        const priceJson = await priceRes.json();
-        prices = priceJson;
-      } catch (err) {
-        console.warn("CoinGecko failed, falling back to Binance:", err.message);
-
-        // Binance fallback
-        try {
-          for (const id of ids) {
-            let symbol;
-
-            switch (id.toLowerCase()) {
-              case "bitcoin":
-                symbol = "BTCUSDT";
-                break;
-              case "ethereum":
-                symbol = "ETHUSDT";
-                break;
-              case "tether":
-                symbol = "USDTUSDT";
-                prices[id] = { usd: 1 };
-                continue;
-              case "usd-coin":
-                symbol = "USDCUSDT";
-                prices[id] = { usd: 1 };
-                continue;
-              default:
-                console.warn(`No Binance mapping for ${id}`);
-                continue;
-            }
-
-            const res = await fetch(
-              `https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`
-            );
-
-            if (!res.ok) throw new Error(`Binance error: ${res.status}`);
-
-            const data = await res.json();
-            prices[id] = { usd: parseFloat(data.price) };
-          }
-        } catch (binanceErr) {
-          console.error("Binance fallback failed:", binanceErr.message);
-        }
-      }
-    }
-
-    // 3. Convert amount to USD
-    const convertToUSD = (asset, amount) => {
-      const id = assetMap[asset.toUpperCase()];
-      if (!id || !prices[id]) return null;
-      const usdPrice = prices[id].usd || 0;
-      return (parseFloat(amount.toString()) * usdPrice).toFixed(2);
-    };
-
-    // 4. Format deposits
-    const depositTxs = deposits.map(d => ({
-      type: 'DEPOSIT',
-      method: d.chain,
-      date: d.createdAt.toISOString(),
-      amountNumeric: { $numberDecimal: convertToUSD(d.asset, d.amountNumeric) },
-      isPositive: true
-    }));
-
-    // 5. Format withdrawals
-    const withdrawalTxs = withdrawals.map(w => ({
-      type: 'WITHDRAW',
-      method: w.chain,
-      date: w.created_at.toISOString(),
-      amountNumeric: { $numberDecimal: convertToUSD(w.asset, w.amountNumeric) },
-      isPositive: false
-    }));
-
-    // 6. Merge and sort by date descending
-    const transactions = [...depositTxs, ...withdrawalTxs].sort(
-      (a, b) => new Date(b.date) - new Date(a.date)
-    );
-
-    return res.status(200).json({
-      success: true,
-      count: transactions.length,
-      transactions
-    });
-
+    const data = await getUserTransactions(userId); // no days => all
+    return res.status(200).json({ success: true, ...data });
   } catch (err) {
-    console.error('Error fetching user transactions:', err);
+    console.error("Error fetching user transactions:", err);
     return res.status(500).json({ success: false, message: 'Server Error' });
   }
 });
+
+// last 7 days transactions
+router.get('/last7days/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const data = await getUserTransactions(userId, 7);
+    return res.status(200).json({ success: true, ...data });
+  } catch (err) {
+    console.error("Error fetching user transactions:", err);
+    return res.status(500).json({ success: false, message: 'Server Error' });
+  }
+});
+
 
 export default router;
