@@ -222,6 +222,112 @@ router.get('/subscriptionplans', async (req, res) => {
   });
 });
 
+router.get('/usersubscriptions', async (req, res) => {
+  const page = parseInt(req.query.page) || 1;
+  const limit = 10;
+  const skip = (page - 1) * limit;
+  const query = req.query.q?.trim() || '';
+
+  const UserSubsCollection = mongoose.connection.db.collection('userplans');
+
+  // filter for either plan name or user email
+  const matchStage = query
+    ? {
+        $or: [
+          { plan_id: { $regex: query, $options: 'i' } },
+          { 'plan.name': { $regex: query, $options: 'i' } },
+          { 'user.email': { $regex: query, $options: 'i' } }
+        ],
+      }
+    : {};
+
+  const pipeline = [
+    // join with subscriptionplans
+    {
+      $lookup: {
+        from: 'subscriptionplans',
+        localField: 'plan_id',
+        foreignField: 'id',
+        as: 'plan',
+      },
+    },
+    { $unwind: { path: '$plan', preserveNullAndEmptyArrays: true } },
+
+    // join with users collection
+    {
+      $lookup: {
+        from: 'users',
+        localField: 'user',
+        foreignField: '_id',
+        as: 'user',
+      },
+    },
+    { $unwind: { path: '$user', preserveNullAndEmptyArrays: true } },
+
+    { $match: matchStage },
+    { $sort: { createdAt: -1 } },
+    { $skip: skip },
+    { $limit: limit },
+    {
+      $project: {
+        _id: 1,
+        user: { _id: 1, email: 1 }, // only return id + email
+        crypto: 1,
+        chain: 1,
+        amount: 1,
+        amount_crypto: 1,
+        hashrate: 1,
+        paid: 1,
+        plan: 1,
+        createdAt: 1,
+      },
+    },
+  ];
+
+  const UserSubs = await UserSubsCollection.aggregate(pipeline).toArray();
+
+  // count total
+  const totalPipeline = [
+    {
+      $lookup: {
+        from: 'subscriptionplans',
+        localField: 'plan_id',
+        foreignField: 'id',
+        as: 'plan',
+      },
+    },
+    { $unwind: { path: '$plan', preserveNullAndEmptyArrays: true } },
+    {
+      $lookup: {
+        from: 'users',
+        localField: 'user',
+        foreignField: '_id',
+        as: 'user',
+      },
+    },
+    { $unwind: { path: '$user', preserveNullAndEmptyArrays: true } },
+    { $match: matchStage },
+    { $count: 'total' },
+  ];
+
+  const totalResult = await UserSubsCollection.aggregate(totalPipeline).toArray();
+  const total = totalResult[0]?.total || 0;
+
+  if (req.headers['x-requested-with'] === 'XMLHttpRequest') {
+    return res.json({ UserSubs, total });
+  }
+
+  res.render('usersubscriptions', {
+    title: 'User Subscriptions',
+    user: req.user?.name || 'Admin',
+    UserSubs,
+    query,
+    page,
+    limit,
+    total,
+  });
+});
+
 // Users management
 router.get('/users', requireAuth, async (req, res) => {
   const page = parseInt(req.query.page) || 1;
