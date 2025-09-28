@@ -5,8 +5,8 @@ const smtpConfig = {
   port: 587,                  // 465 for SSL, 587 for TLS
   secure: false,              
   auth: {
-    user: "",
-    pass: ""
+    user: "vaibhav28890@gmail.com",
+    pass: "xpzadwyvykoegoln"
   }
 };
 
@@ -24,7 +24,7 @@ async function testSMTP() {
     console.log("Sending test email...");
     const info = await transporter.sendMail({
       from: `"SMTP Test" <${smtpConfig.auth.user}>`,
-      to: "vaibhav28890@gmail.com",
+      to: "vaibhav0249@gmail.com",
       subject: "SMTP Test",
       text: "This is a test email to verify SMTP settings.",
     });
