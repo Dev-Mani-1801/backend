@@ -26,4 +26,37 @@ router.get('/id/android', async (req, res) => {
   }
 });
 
+router.get('/ids', async (req, res) => {
+  try {
+    const { production } = req.query;
+    const isProduction = production === 'true';
+
+    console.log("GoogleAds Request!!", production);
+
+    const adDocs = await GoogleAds.find({ production: isProduction }).lean();
+    console.log("GoogleAds - AdDocs", adDocs);
+
+    const ads = {
+      ios: {},
+      android: {}
+    };
+
+    adDocs.forEach((ad) => {
+      if (ad.ad_type === 'rewarded_video') {
+        ads[ad.platform].rewardedVideoId = ad.ad_id;
+      }
+      if (ad.ad_type === 'home_banner') {
+        ads[ad.platform].homeBannerId = ad.ad_id;
+      }
+    });
+
+    console.log("GoogleAds - Ads: ", ads);
+
+    res.status(200).json({ success: true, ads });
+  } catch (err) {
+    console.error('Error fetching Google Ads IDs:', err);
+    res.status(500).json({ success: false, message: 'Server Error' });
+  }
+});
+
 export default router;
