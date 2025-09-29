@@ -18,6 +18,7 @@ import lightning_handles from './api_routes/lightning-handle.js';
 import notification_handles from './api_routes/notification_handles.js'
 import google_ads_handle from './api_routes/google_ads.js'
 import delete_handles from './api_routes/delete_handles.js'
+import security_handles from './api_routes/security_handles.js'
 
 const router = express.Router();
 
@@ -164,5 +165,6 @@ router.use('/lightning-handles', lightning_handles);
 router.use('/google-ads', google_ads_handle);
 
 router.use('/delete-handles', delete_handles);
+router.use('/security', security_handles);
 
 export default router;
