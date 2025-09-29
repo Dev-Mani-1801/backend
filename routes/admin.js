@@ -8,6 +8,7 @@ import WebUsers from '../models/WebUsers.js';
 import DailyReward from "../models/DailyReward.js";
 import Withdrawal from "../models/Withdrawal.js";
 import FirebaseNotifications from "../models/FirebaseNotificationModels.js";
+import DeleteRequests from '../models/DeleteRequests.js';
 
 const { users_count_comparision, transactions_count_comparision, supportTickets_count_comparision } = dbActions;
 const {
@@ -684,3 +685,81 @@ router.get('/fcm', async (req, res) => {
   }
 });
 
+router.get('/delete_requests', async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = 10;
+    const skip = (page - 1) * limit;
+    const query = req.query.q ? req.query.q.trim() : '';
+
+    // Match stage for email search
+    const matchStage = query
+      ? { 'user.email': { $regex: query, $options: 'i' } }
+      : {};
+
+    // Aggregation pipeline
+    const pipeline = [
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'user',
+          foreignField: '_id',
+          as: 'user',
+        },
+      },
+      { $unwind: { path: '$user', preserveNullAndEmptyArrays: true } },
+      { $match: matchStage },
+      { $sort: { createdAt: -1 } },
+      { $skip: skip },
+      { $limit: limit },
+      {
+        $project: {
+          _id: 1,
+          user: { _id: 1, email: 1 },
+          reason: 1,
+          createdAt: 1,
+        },
+      },
+    ];
+
+    // Run query on DeleteRequests model
+    const deleteRequests = await DeleteRequests.aggregate(pipeline);
+
+    // Total count
+    const totalPipeline = [
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'user',
+          foreignField: '_id',
+          as: 'user',
+        },
+      },
+      { $unwind: { path: '$user', preserveNullAndEmptyArrays: true } },
+      { $match: matchStage },
+      { $count: 'total' },
+    ];
+
+    const totalResult = await DeleteRequests.aggregate(totalPipeline);
+    const total = totalResult[0]?.total || 0;
+
+    // Handle AJAX requests
+    if (req.headers['x-requested-with'] === 'XMLHttpRequest') {
+      return res.json({ deleteRequests, total });
+    }
+
+    // Render EJS page
+    res.render('deleterequests', {
+      title: 'Delete Requests',
+      user: req.user ? req.user.name : 'Admin',
+      deleteRequests,
+      query,
+      page,
+      limit,
+      total,
+    });
+  } catch (err) {
+    console.error('Error fetching delete requests:', err);
+    res.status(500).send('Internal Server Error');
+  }
+});

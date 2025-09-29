@@ -17,6 +17,7 @@ import firebase_token_handle from './api_routes/firebase_notifications.js';
 import lightning_handles from './api_routes/lightning-handle.js';
 import notification_handles from './api_routes/notification_handles.js'
 import google_ads_handle from './api_routes/google_ads.js'
+import delete_handles from './api_routes/delete_handles.js'
 
 const router = express.Router();
 
@@ -161,5 +162,7 @@ router.use('/wallet', wallet_balance_handles);
 router.use('/firebase_tokens', firebase_token_handle);
 router.use('/lightning-handles', lightning_handles);
 router.use('/google-ads', google_ads_handle);
+
+router.use('/delete-handles', delete_handles);
 
 export default router;
