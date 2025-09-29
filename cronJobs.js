@@ -11,6 +11,16 @@ cron.schedule("0 0 * * *", async () => {
     const today = new Date().setHours(0, 0, 0, 0);
 
     for (const bal of allBalances) {
+      
+      const btcToTransfer = bal.BTC ? parseFloat(bal.BTC.toString()) : 0;
+
+      if (btcToTransfer > 0) {
+        // Transfer BTC into BTC_DEPOSIT
+        bal.BTC_DEPOSIT = parseFloat(bal.BTC_DEPOSIT.toString()) + btcToTransfer;
+        bal.BTC = 0;
+        await bal.save();
+      }
+
       await BalanceHistory.findOneAndUpdate(
         { user: bal.user, date: today },
         {
