@@ -2,11 +2,11 @@ import nodemailer from "nodemailer";
 
 const smtpConfig = {
   host: "smtp.gmail.com",
-  port: 465,                  // 465 for SSL, 587 for TLS
-  secure: true,              
+  port: 587,                  // 465 for SSL, 587 for TLS
+  secure: false,              
   auth: {
-    user: "info@bitplaypro.com",
-    pass: "Digital@2025#"
+    user: "bitplay.global@gmail.com",
+    pass: "elwtmfjrhgchbkpf"
   }
 };
 
@@ -24,7 +24,7 @@ async function testSMTP() {
     console.log("Sending test email...");
     const info = await transporter.sendMail({
       from: `"SMTP Test" <${smtpConfig.auth.user}>`,
-      to: "growthdev2@gmail.com",
+      to: "vaibhav28890@gmail.com",
       subject: "SMTP Test",
       text: "This is a test email to verify SMTP settings.",
     });
