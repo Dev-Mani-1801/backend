@@ -68,8 +68,9 @@ router.get("/history", async (req, res) => {
     }
 
     const history = await BalanceHistory.find({ user: userId })
-      .sort({ date: -1 })
-      .lean();
+    .sort({ date: -1 })
+    .limit(10)
+    .lean();
 
     res.json({ success: true, balances: history });
   } catch (err) {
