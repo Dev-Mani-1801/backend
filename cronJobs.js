@@ -2,6 +2,9 @@ import cron from "node-cron";
 import Balance from "./models/Balance.js";
 import BalanceHistory from "./models/BalanceHistory.js";
 
+import DailyRewardClaim from "./models/DailyRewardClaim.js";
+import DailyRewardClaimHistory from "./models/DailyRewardClaimHistory.js";
+
 // Run at midnight server time: "0 0 * * *"
 cron.schedule("0 0 * * *", async () => {
   console.log("Running daily balance snapshot job...");
@@ -38,6 +41,23 @@ cron.schedule("0 0 * * *", async () => {
       );
     }
 
+    // --- TRANSFER DAILY REWARD CLAIMS ---
+    const allClaimedRewards = await DailyRewardClaim.find({});
+
+    if (allClaimedRewards.length > 0) {
+      const historyEntries = allClaimedRewards.map((claim) => ({
+        userId: claim.userId,
+        rewardId: claim.rewardId,
+        claimedAt: claim.claimedAt,
+        createdAt: claim.createdAt,
+        updatedAt: claim.updatedAt,
+      }));
+
+      await DailyRewardClaimHistory.insertMany(historyEntries);
+
+      await DailyRewardClaim.deleteMany({});
+    }
+    
     console.log("Daily snapshots saved.");
   } catch (err) {
     console.error("Error saving daily snapshots:", err);
