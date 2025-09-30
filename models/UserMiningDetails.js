@@ -11,6 +11,16 @@ const UserMiningSchema = new mongoose.Schema({
     required: true,
     min: 0
   },
+  rewarded_ads_watched: {
+    type: Number,
+    required: true,
+    min: 0
+  },
+  random_ads_watched: {
+    type: Number,
+    required: true,
+    min: 0
+  },
   mining_isactive: {
     type: Boolean,
     default: false
