@@ -1,17 +1,79 @@
 import express from 'express';
 import mongoose from 'mongoose';
 import UserMiningDetail from "../../models/UserMiningDetails.js";
+import BalanceHistory from "../../models/BalanceHistory.js";
 
 const router = express.Router();
+
+const BTC_PER_HASHPOWER_PER_SEC = 0.000000000001;
+const MAX_MINING_DURATION_MS = 24 * 60 * 60 * 1000;
 
 // GET user mining details by userId
 router.get("/:userId", async (req, res) => {
   try {
-    const mining_details = await UserMiningDetail.findOne({ user: req.params.userId });
+    const { userId } = req.params;
+
+    // Get mining details
+    const mining_details = await UserMiningDetail.findOne({ user: userId });
     if (!mining_details) {
       return res.status(404).json({ success: false, message: "Mining details not found." });
     }
-    res.json({ success: true, mining_details });
+
+    const { mining_start_time, hashpower, updatedAt } = mining_details;
+
+    // Safety check
+    if (!mining_start_time || !hashpower || hashpower <= 0) {
+      return res.json({
+        success: true,
+        mining_details,
+        calculated_btc: 0,
+        message: "Mining not active or invalid hashpower.",
+      });
+    }
+
+    console.log("User Mining Details: ", mining_details);
+
+    // Calculate time difference (since last update)
+    const now = Date.now();
+    const lastUpdateTime = new Date(updatedAt).getTime();
+    const elapsed = now - mining_start_time;
+    const sinceLastUpdate = now - lastUpdateTime;
+
+    let calculated_btc = 0;
+
+    // If within 24 hours → calculate earnings from balance history
+    if (sinceLastUpdate < MAX_MINING_DURATION_MS) {
+      // Find yesterday's balance
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+
+      const startOfYesterday = new Date(yesterday.setHours(0, 0, 0, 0));
+      const endOfYesterday = new Date(yesterday.setHours(23, 59, 59, 999));
+
+      const balanceHistory = await BalanceHistory.findOne({
+        user: userId,
+        date: { $gte: startOfYesterday, $lte: endOfYesterday },
+      });
+
+      const yesterdayBTC = balanceHistory?.balances?.BTC
+        ? parseFloat(balanceHistory.balances.BTC.toString())
+        : 0;
+
+      // How long has mining been active since start time
+      const miningDurationSec = Math.min(elapsed / 1000, MAX_MINING_DURATION_MS / 1000);
+
+      // Calculate earned BTC based on hashpower and duration
+      calculated_btc = yesterdayBTC + hashpower * BTC_PER_HASHPOWER_PER_SEC * miningDurationSec;
+    }
+
+    console.log("Calculated BTC: ", calculated_btc);
+
+    // Return combined response
+    res.json({
+      success: true,
+      mining_details,
+      calculated_btc,
+    });
   } catch (err) {
     console.error("Error fetching mining details:", err);
     res.status(500).json({ success: false, error: err.message });

@@ -34,7 +34,7 @@ router.get('/ids', async (req, res) => {
     console.log("GoogleAds Request!!", production);
 
     const adDocs = await GoogleAds.find({ production: isProduction }).lean();
-    console.log("GoogleAds - AdDocs", adDocs);
+    // console.log("GoogleAds - AdDocs", adDocs);
 
     const ads = {
       ios: {},
@@ -50,7 +50,7 @@ router.get('/ids', async (req, res) => {
       }
     });
 
-    console.log("GoogleAds - Ads: ", ads);
+    // console.log("GoogleAds - Ads: ", ads);
 
     res.status(200).json({ success: true, ads });
   } catch (err) {
