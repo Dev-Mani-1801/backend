@@ -106,6 +106,9 @@
                                 <li><a class="dropdown-item" href="javascript:void(0)" onclick="changeUserStatus('<%= user._id %>', 'suspended')">
                                     <i class="fas fa-ban text-danger me-2"></i>Suspend
                                 </a></li>
+                                <li><a class="dropdown-item" href="javascript:void(0)" onclick="deleteUser('<%= user._id %>')">
+                                    <i class="fas fa-ban text-danger me-2"></i>Delete
+                                </a></li>
                             </ul>
                         </div>
                     </td>
@@ -272,6 +275,13 @@
                 console.error('Error updating user status:', error);
                 showAlert('error', 'Failed to update user status');
             }
+        };
+
+        window.deleteUser = async function(userId) {
+            if (!confirm(`Are you sure you want to delete user ?`)) {
+                return;
+            }
+
         };
 
         // Function to show alerts
