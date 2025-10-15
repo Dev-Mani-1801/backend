@@ -19,10 +19,12 @@ router.get("/:userId", async (req, res) => {
       return res.status(404).json({ success: false, message: "Mining details not found." });
     }
 
-    const { mining_start_time, hashpower, updatedAt } = mining_details;
+    const { start_time, hashpower, updatedAt } = mining_details;
+
+    console.log("User Mining - Details: ", mining_details);
 
     // Safety check
-    if (!mining_start_time || !hashpower || hashpower <= 0) {
+    if (!start_time || !hashpower || hashpower <= 0) {
       return res.json({
         success: true,
         mining_details,
@@ -31,13 +33,13 @@ router.get("/:userId", async (req, res) => {
       });
     }
 
-    console.log("User Mining Details: ", mining_details);
-
     // Calculate time difference (since last update)
     const now = Date.now();
     const lastUpdateTime = new Date(updatedAt).getTime();
-    const elapsed = now - mining_start_time;
+    const elapsed = now - start_time;
     const sinceLastUpdate = now - lastUpdateTime;
+
+    console.log("User Mining - Elapsed: ", elapsed);
 
     let calculated_btc = 0;
 
@@ -62,8 +64,11 @@ router.get("/:userId", async (req, res) => {
       // How long has mining been active since start time
       const miningDurationSec = Math.min(elapsed / 1000, MAX_MINING_DURATION_MS / 1000);
 
+      console.log("User Mining - Yesterday's Balance: ", yesterdayBTC);
+      console.log("User Mining - Total Mining Duration: ", miningDurationSec);
+
       // Calculate earned BTC based on hashpower and duration
-      calculated_btc = yesterdayBTC + hashpower * BTC_PER_HASHPOWER_PER_SEC * miningDurationSec;
+      calculated_btc = ((hashpower * BTC_PER_HASHPOWER_PER_SEC) * miningDurationSec);
     }
 
     console.log("Calculated BTC: ", calculated_btc);
