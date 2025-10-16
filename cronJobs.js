@@ -1,47 +1,89 @@
 import cron from "node-cron";
-import Balance from "./models/Balance.js";
-import BalanceHistory from "./models/BalanceHistory.js";
+import mongoose from "mongoose";
+import Balance from "../models/Balance.js";
+import BalanceHistory from "../models/BalanceHistory.js";
+import DailyRewardClaim from "../models/DailyRewardClaim.js";
+import DailyRewardClaimHistory from "../models/DailyRewardClaimHistory.js";
+import UserMiningDetail from "../models/UserMiningDetails.js";
 
-import DailyRewardClaim from "./models/DailyRewardClaim.js";
-import DailyRewardClaimHistory from "./models/DailyRewardClaimHistory.js";
+console.log("Cron Job Started!!");
+
+const MONGO_URI = "mongodb+srv://growthdev1:Ji0LlqjCuFzlYP9s@cluster0.zgxt7d9.mongodb.net/fakeminingapp?retryWrites=true&w=majority";
+
+const BTC_PER_HASHPOWER_PER_SEC = 0.000000000001;
+const MAX_MINING_DURATION_MS = 24 * 60 * 60 * 1000;
 
 // Run at midnight server time: "0 0 * * *"
 cron.schedule("0 0 * * *", async () => {
   console.log("Running daily balance snapshot job...");
 
   try {
-    const allBalances = await Balance.find({});
+    await mongoose.connect(MONGO_URI);
+    console.log("Connected to MongoDB");
+
     const today = new Date().setHours(0, 0, 0, 0);
+    console.log("Fetching user balances...");
+
+    const allBalances = await Balance.find({});
 
     for (const bal of allBalances) {
-      
-      const btcToTransfer = bal.BTC ? parseFloat(bal.BTC.toString()) : 0;
+      try {
+          // --- Log user being processed ---
+          console.log(`Processing user balance: ${bal.user}`);
 
-      if (btcToTransfer > 0) {
-        // Transfer BTC into BTC_DEPOSIT
-        bal.BTC_DEPOSIT = parseFloat(bal.BTC_DEPOSIT.toString()) + btcToTransfer;
-        bal.BTC = 0;
-        await bal.save();
+          // Fetch user’s mining details
+          const mining_details = await UserMiningDetail.findOne({ user: bal.user });
+          let accumulatedBTC = 0;
+
+          if (mining_details) {
+          const { start_time, hashpower, updatedAt } = mining_details;
+
+          if (start_time && hashpower && hashpower > 0) {
+              const now = Date.now();
+              const lastUpdateTime = new Date(updatedAt).getTime();
+              const elapsed = now - start_time;
+              const sinceLastUpdate = now - lastUpdateTime;
+
+              if (sinceLastUpdate < MAX_MINING_DURATION_MS) {
+              const miningDurationSec = Math.min(elapsed / 1000, MAX_MINING_DURATION_MS / 1000);
+              accumulatedBTC = (hashpower * BTC_PER_HASHPOWER_PER_SEC) * miningDurationSec;
+              }
+          }
+          }
+
+          const btcToTransfer = accumulatedBTC;
+
+          bal.BTC_DEPOSIT = parseFloat(bal.BTC_DEPOSIT.toString()) + btcToTransfer;
+          bal.BTC = 0;
+          await bal.save();
+          // console.log(`Transferred ${btcToTransfer} BTC to BTC_DEPOSIT for user ${bal.user}`);
+
+          await BalanceHistory.findOneAndUpdate(
+          { user: bal.user, date: today },
+          {
+              $set: {
+              user: bal.user,
+              date: today,
+              balances: {
+                  BNB: bal.BNB,
+                  USDT: bal.USDT,
+                  USDC: bal.USDC,
+                  BTC: accumulatedBTC,
+                  LTC: bal.LTC,
+              },
+              },
+          },
+          { upsert: true, new: true }
+          );
+
+      } catch (innerErr) {
+          console.error(`Error processing user balance ${bal.user}:`, innerErr);
+      }
       }
 
-      await BalanceHistory.findOneAndUpdate(
-        { user: bal.user, date: today },
-        {
-          user: bal.user,
-          date: today,
-          balances: {
-            BNB: bal.BNB,
-            USDT: bal.USDT,
-            USDC: bal.USDC,
-            BTC: bal.BTC,
-            LTC: bal.LTC,
-          },
-        },
-        { upsert: true }
-      );
-    }
+    console.log("Balances updated and accumulated BTC deposited.");
 
-    // --- TRANSFER DAILY REWARD CLAIMS ---
+    // 4 Archive and reset daily reward claims
     const allClaimedRewards = await DailyRewardClaim.find({});
 
     if (allClaimedRewards.length > 0) {
@@ -54,11 +96,28 @@ cron.schedule("0 0 * * *", async () => {
       }));
 
       await DailyRewardClaimHistory.insertMany(historyEntries);
-
       await DailyRewardClaim.deleteMany({});
     }
-    
-    console.log("Daily snapshots saved.");
+
+    console.log("Daily reward claims reset.");
+
+    // 5 Reset UserMiningDetails
+    await UserMiningDetail.updateMany(
+      {},
+      {
+        $set: {
+          hashpower: 0,
+          mining_isactive: false,
+          rewarded_ads_watched: 0,
+          random_ads_watched: 0,
+          start_time: 0,
+          stop_time: 0,
+        },
+      }
+    );
+
+    console.log("User mining details reset.");
+    console.log("Daily snapshot complete.");
   } catch (err) {
     console.error("Error saving daily snapshots:", err);
   }
