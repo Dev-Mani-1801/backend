@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 
 const DeleteRequestSchema = new mongoose.Schema({
   user: {
-    type: mongoose.Schema.Types.ObjectId,
+    type: String,
     ref: 'users',
     required: true
   },

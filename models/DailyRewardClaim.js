@@ -4,7 +4,7 @@ const { Schema } = mongoose;
 
 const DailyRewardClaimSchema = new Schema(
   {
-    userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    userId: { type: String, ref: "User", required: true },
     firebase_uid: {
       type: String,
       ref: 'users',
