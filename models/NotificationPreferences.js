@@ -6,6 +6,11 @@ const NotificationPreferencesSchema = new mongoose.Schema({
     ref: 'users',
     required: true
   },
+  firebase_uid: {
+    type: String,
+    ref: 'users',
+    index: true
+  },
   email: {
     type: Boolean,
     default: false,

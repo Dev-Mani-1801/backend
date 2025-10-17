@@ -2,6 +2,11 @@ import mongoose from "mongoose";
 
 const balanceHistorySchema = new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId, ref: "users", required: true },
+  firebase_uid: {
+    type: String,
+    ref: 'users',
+    index: true
+  },
   date: { type: Date, required: true },
   balances: {
     BNB: { type: mongoose.Schema.Types.Decimal128, default: 0 },

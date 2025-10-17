@@ -6,6 +6,11 @@ const walletAddressSchema = new mongoose.Schema({
     ref: "User",
     required: true,
   },
+  firebase_uid: {
+    type: String,
+    ref: 'users',
+    index: true
+  },
   chain: {
     type: String,
     enum: ["bsc", "btc", "ltc"],

@@ -5,6 +5,11 @@ const { Schema } = mongoose;
 const DailyRewardClaimHistorySchema = new Schema(
   {
     userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    firebase_uid: {
+      type: String,
+      ref: 'users',
+      index: true
+    },
     rewardId: { type: Schema.Types.ObjectId, ref: "DailyReward", required: true },
     claimedAt: { type: Date, default: Date.now },
   },

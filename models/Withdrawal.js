@@ -11,6 +11,11 @@ const withdrawalSchema = new mongoose.Schema({
     ref: "User",
     required: true,
   },
+  firebase_uid: {
+    type: String,
+    ref: 'User',
+    index: true
+  },
   asset: {
     type: String,
     required: true,
