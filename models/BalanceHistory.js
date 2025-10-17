@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 
 const balanceHistorySchema = new mongoose.Schema({
-  user: { type: String, ref: "users", required: true },
+  user: { type: String, ref: "users", required: true, unique: true},
   firebase_uid: {
     type: String,
     ref: 'users',

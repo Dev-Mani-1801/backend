@@ -25,4 +25,5 @@ const deleteUserByEmail = async (email) => {
   }
 };
 
-deleteUserByEmail("hieu.tran@adaptsmedia.com");
+// deleteUserByEmail("hieutran421999@gmail.com");
+deleteUserByEmail("bitplay.global@gmail.com");
