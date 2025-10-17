@@ -1,10 +1,10 @@
 import cron from "node-cron";
 import mongoose from "mongoose";
-import Balance from "../models/Balance.js";
-import BalanceHistory from "../models/BalanceHistory.js";
-import DailyRewardClaim from "../models/DailyRewardClaim.js";
-import DailyRewardClaimHistory from "../models/DailyRewardClaimHistory.js";
-import UserMiningDetail from "../models/UserMiningDetails.js";
+import Balance from "./models/Balance.js";
+import BalanceHistory from "./models/BalanceHistory.js";
+import DailyRewardClaim from "./models/DailyRewardClaim.js";
+import DailyRewardClaimHistory from "./models/DailyRewardClaimHistory.js";
+import UserMiningDetail from "./models/UserMiningDetails.js";
 
 console.log("Cron Job Started!!");
 

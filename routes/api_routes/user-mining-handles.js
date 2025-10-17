@@ -101,17 +101,17 @@ router.post("/", async (req, res) => {
     if (typeof rewarded_ads_watched === "number") updateData.rewarded_ads_watched = rewarded_ads_watched;
     if (typeof random_ads_watched === "number") updateData.random_ads_watched = random_ads_watched;
     if (typeof mining_isactive === "boolean") updateData.mining_isactive = mining_isactive;
-
     if (typeof stop_time === "number") updateData.stop_time = stop_time;
 
     if (typeof start_time === "number") {
+      const now = Date.now();
+
       if (!existingRecord || !existingRecord.start_time) {
         // No record found → set start_time
         updateData.start_time = start_time;
       } else {
-        const lastStart = new Date(existingRecord.start_time).getTime();
+        const lastStart = Number(existingRecord.start_time);
         const diff = now - lastStart;
-
         const twentyFourHours = 24 * 60 * 60 * 1000;
 
         if (diff >= twentyFourHours) {
@@ -129,6 +129,8 @@ router.post("/", async (req, res) => {
       { $set: updateData, user: user_id },
       { new: true, upsert: true }
     );
+
+    console.log("Setting User Data: ", updateData);
 
     res.json({ success: true, mining_details });
   } catch (err) {
