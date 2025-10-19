@@ -3,13 +3,17 @@ import mongoose from 'mongoose';
 import UserMiningDetail from "../../models/UserMiningDetails.js";
 import BalanceHistory from "../../models/BalanceHistory.js";
 import Balance from "../../models/Balance.js";
+import DailyRewardClaim from '../../models/DailyRewardClaim.js';
+import { parse } from 'date-fns';
 
 const router = express.Router();
 
 const BTC_PER_HASHPOWER_PER_SEC = 0.000000000001;
 const MAX_MINING_DURATION_MS = 24 * 60 * 60 * 1000;
+// const MAX_MINING_DURATION_MS = 10 * 60 * 1000;
 
-const MONGO_URI = "mongodb+srv://growthdev1:Ji0LlqjCuFzlYP9s@cluster0.zgxt7d9.mongodb.net/fakeminingapp?retryWrites=true&w=majority";
+const MONGO_URI =
+  "mongodb+srv://growthdev1:Ji0LlqjCuFzlYP9s@cluster0.zgxt7d9.mongodb.net/fakeminingapp?retryWrites=true&w=majority";
 
 // GET user mining details by userId
 router.get("/:userId", async (req, res) => {
@@ -17,7 +21,7 @@ router.get("/:userId", async (req, res) => {
     const { userId } = req.params;
     await mongoose.connect(MONGO_URI);
 
-    const mining_details = await UserMiningDetail.findOne({ user: userId });
+    let mining_details = await UserMiningDetail.findOne({ user: userId });
     if (!mining_details) {
       return res.status(404).json({ success: false, message: "Mining details not found." });
     }
@@ -34,43 +38,63 @@ router.get("/:userId", async (req, res) => {
     }
 
     // --- LOCAL TIME CALCULATION ---
-    const userOffsetMin = offset ?? 0;
+    const userOffsetMin = Number(offset) || 0;
 
-    // Get local time using offset
     const nowUTC = new Date();
     const nowLocal = new Date(nowUTC.getTime() - userOffsetMin * 60 * 1000);
 
-    // Local start time (from DB)
-    const localStart = local_start_time
-      ? new Date(local_start_time)
-      : new Date(start_time - userOffsetMin * 60 * 1000);
+    // Try to parse local_start_time safely
+    let localStart;
+    try {
+      if (local_start_time) {
+        localStart = parse(local_start_time, 'dd/MM/yyyy, h:mm:ss a', new Date());
+        if (isNaN(localStart)) throw new Error("Invalid parse");
+      } else {
+        localStart = new Date(start_time - userOffsetMin * 60 * 1000);
+      }
+    } catch {
+      // Fallback: extract numbers manually if locale symbols cause parse() failure
+      const parts = local_start_time?.match(/\d+/g);
+      if (parts && parts.length >= 6) {
+        localStart = new Date(parts[2], parts[1] - 1, parts[0], parts[3], parts[4], parts[5]);
+      } else {
+        localStart = new Date(start_time - userOffsetMin * 60 * 1000);
+      }
+    }
 
-    // Elapsed time in local timezone
-    const elapsedLocalMs = nowLocal - localStart;
+    // Calculate elapsed time
+    const elapsedLocalMs = nowLocal.getTime() - localStart.getTime();
     const elapsedLocalHours = elapsedLocalMs / (1000 * 60 * 60);
+    const elapsedLocalMins = elapsedLocalMs / (1000 * 60);
 
-    console.log("⏱ Local Elapsed (hours):", elapsedLocalHours.toFixed(2));
+    console.log("Local Elapsed (hours):", elapsedLocalHours.toFixed(2));
+    console.log("Local Elapsed (Mins):", elapsedLocalMins.toFixed(2));
 
     let calculated_btc = 0;
 
     if (elapsedLocalHours < 24) {
-      // Within same local day → mining continues
+      // Within allowed duration (10 mins for testing)
+      const miningDurationSec = Math.min(elapsedLocalMs / 1000, MAX_MINING_DURATION_MS / 1000);
+      calculated_btc = hashpower * BTC_PER_HASHPOWER_PER_SEC * miningDurationSec;
+      console.log("Total Mined BTC:", calculated_btc);
+    } else {
+      // Exceeded mining duration → reset mining
+      const btcToTransfer = hashpower * BTC_PER_HASHPOWER_PER_SEC * 24 * 3600;
+
       const miningDurationSec = Math.min(elapsedLocalMs / 1000, MAX_MINING_DURATION_MS / 1000);
       calculated_btc = hashpower * BTC_PER_HASHPOWER_PER_SEC * miningDurationSec;
 
-      console.log("Total Mined BTC: ", calculated_btc);
-    } else {
-      // More than 24 local hours → reset mining
-      const btcToTransfer = hashpower * BTC_PER_HASHPOWER_PER_SEC * 24 * 3600;
+      console.log("UserID:", userId);
+      console.log("Mining Details:", mining_details);
 
       const user_balance = await Balance.findOne({ user: userId });
       if (user_balance) {
-        user_balance.BTC_DEPOSIT = parseFloat(user_balance.BTC_DEPOSIT.toString()) + btcToTransfer;
+        user_balance.BTC_DEPOSIT =
+          parseFloat(user_balance.BTC_DEPOSIT?.toString() || "0") + btcToTransfer;
         user_balance.BTC = 0;
         await user_balance.save();
       }
 
-      // Reset user mining
       await UserMiningDetail.findOneAndUpdate(
         { user: userId },
         {
@@ -81,11 +105,12 @@ router.get("/:userId", async (req, res) => {
             random_ads_watched: 0,
             start_time: 0,
             stop_time: 0,
+            local_start_time: null,
+            local_stop_time: null
           },
         }
       );
 
-      // Update balance history for that day
       const todayLocal = new Date(nowLocal.getFullYear(), nowLocal.getMonth(), nowLocal.getDate());
       await BalanceHistory.findOneAndUpdate(
         { user: userId, date: todayLocal },
@@ -94,7 +119,7 @@ router.get("/:userId", async (req, res) => {
             user: userId,
             date: todayLocal,
             balances: {
-              BTC: 0,
+              BTC: calculated_btc,
               BNB: user_balance?.BNB ?? 0,
               USDT: user_balance?.USDT ?? 0,
               USDC: user_balance?.USDC ?? 0,
@@ -105,7 +130,10 @@ router.get("/:userId", async (req, res) => {
         { upsert: true, new: true }
       );
 
+      await DailyRewardClaim.deleteMany({ userId: userId });
+
       calculated_btc = 0;
+      mining_details = await UserMiningDetail.findOne({ user: userId });
     }
 
     return res.json({
@@ -114,10 +142,13 @@ router.get("/:userId", async (req, res) => {
       calculated_btc: parseFloat(calculated_btc.toFixed(12)),
       message: "Mining details fetched successfully (local time based).",
     });
-
   } catch (err) {
     console.error("Error fetching mining details:", err);
-    return res.status(500).json({ success: false, message: "Server error", error: err.message });
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: err.message,
+    });
   }
 });
 
@@ -152,8 +183,13 @@ router.post("/", async (req, res) => {
     if (typeof mining_isactive === "boolean") updateData.mining_isactive = mining_isactive;
     if (typeof stop_time === "number") updateData.stop_time = stop_time;
 
+
     if (typeof local_start_time === "string" && local_start_time.trim() !== "") {
-      updateData.local_start_time = local_start_time;
+      if (!existingRecord || !existingRecord.local_start_time) {
+        updateData.local_start_time = local_start_time;
+      } else {
+        updateData.local_start_time = existingRecord.local_start_time;
+      }
     }
 
     if (typeof local_stop_time === "string" && local_stop_time.trim() !== "") {
