@@ -88,7 +88,17 @@ router.get("/:userId", async (req, res) => {
 // POST create or update user mining details
 router.post("/", async (req, res) => {
   try {
-    const { user_id, hashpower, mining_isactive, rewarded_ads_watched, random_ads_watched, start_time, stop_time } = req.body;
+    const { 
+      user_id, 
+      hashpower, 
+      mining_isactive, 
+      rewarded_ads_watched, 
+      random_ads_watched, 
+      start_time, 
+      stop_time,
+      local_start_time,
+      local_stop_time 
+    } = req.body;
 
     if (!user_id) {
       return res.status(400).json({ success: false, message: "user_id is required" });
@@ -102,6 +112,14 @@ router.post("/", async (req, res) => {
     if (typeof random_ads_watched === "number") updateData.random_ads_watched = random_ads_watched;
     if (typeof mining_isactive === "boolean") updateData.mining_isactive = mining_isactive;
     if (typeof stop_time === "number") updateData.stop_time = stop_time;
+
+    if (typeof local_start_time === "string" && local_start_time.trim() !== "") {
+      updateData.local_start_time = local_start_time;
+    }
+
+    if (typeof local_stop_time === "string" && local_stop_time.trim() !== "") {
+      updateData.local_stop_time = local_stop_time;
+    }
 
     if (typeof start_time === "number") {
       const now = Date.now();

@@ -39,6 +39,14 @@ const UserMiningSchema = new mongoose.Schema({
     type: Number,
     default: null
   },
+  local_start_time: {
+    type: String,
+    default: null,
+  },
+  local_stop_time: {
+    type: String,
+    default: null,
+  },
 }, { timestamps: true });
 
 export default mongoose.model("UserMining", UserMiningSchema);
