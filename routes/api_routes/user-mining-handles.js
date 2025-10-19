@@ -2,28 +2,28 @@ import express from 'express';
 import mongoose from 'mongoose';
 import UserMiningDetail from "../../models/UserMiningDetails.js";
 import BalanceHistory from "../../models/BalanceHistory.js";
+import Balance from "../../models/Balance.js";
 
 const router = express.Router();
 
 const BTC_PER_HASHPOWER_PER_SEC = 0.000000000001;
 const MAX_MINING_DURATION_MS = 24 * 60 * 60 * 1000;
 
+const MONGO_URI = "mongodb+srv://growthdev1:Ji0LlqjCuFzlYP9s@cluster0.zgxt7d9.mongodb.net/fakeminingapp?retryWrites=true&w=majority";
+
 // GET user mining details by userId
 router.get("/:userId", async (req, res) => {
   try {
     const { userId } = req.params;
+    await mongoose.connect(MONGO_URI);
 
-    // Get mining details
     const mining_details = await UserMiningDetail.findOne({ user: userId });
     if (!mining_details) {
       return res.status(404).json({ success: false, message: "Mining details not found." });
     }
 
-    const { start_time, hashpower, updatedAt } = mining_details;
+    const { start_time, hashpower, offset, local_start_time } = mining_details;
 
-    console.log("User Mining - Details: ", mining_details);
-
-    // Safety check
     if (!start_time || !hashpower || hashpower <= 0) {
       return res.json({
         success: true,
@@ -33,55 +33,91 @@ router.get("/:userId", async (req, res) => {
       });
     }
 
-    // Calculate time difference (since last update)
-    const now = Date.now();
-    const lastUpdateTime = new Date(updatedAt).getTime();
-    const elapsed = now - start_time;
-    const sinceLastUpdate = now - lastUpdateTime;
+    // --- LOCAL TIME CALCULATION ---
+    const userOffsetMin = offset ?? 0;
 
-    console.log("User Mining - Elapsed: ", elapsed);
+    // Get local time using offset
+    const nowUTC = new Date();
+    const nowLocal = new Date(nowUTC.getTime() - userOffsetMin * 60 * 1000);
+
+    // Local start time (from DB)
+    const localStart = local_start_time
+      ? new Date(local_start_time)
+      : new Date(start_time - userOffsetMin * 60 * 1000);
+
+    // Elapsed time in local timezone
+    const elapsedLocalMs = nowLocal - localStart;
+    const elapsedLocalHours = elapsedLocalMs / (1000 * 60 * 60);
+
+    console.log("⏱ Local Elapsed (hours):", elapsedLocalHours.toFixed(2));
 
     let calculated_btc = 0;
 
-    // If within 24 hours → calculate earnings from balance history
-    if (sinceLastUpdate < MAX_MINING_DURATION_MS) {
-      // Find yesterday's balance
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
+    if (elapsedLocalHours < 24) {
+      // Within same local day → mining continues
+      const miningDurationSec = Math.min(elapsedLocalMs / 1000, MAX_MINING_DURATION_MS / 1000);
+      calculated_btc = hashpower * BTC_PER_HASHPOWER_PER_SEC * miningDurationSec;
 
-      const startOfYesterday = new Date(yesterday.setHours(0, 0, 0, 0));
-      const endOfYesterday = new Date(yesterday.setHours(23, 59, 59, 999));
+      console.log("Total Mined BTC: ", calculated_btc);
+    } else {
+      // More than 24 local hours → reset mining
+      const btcToTransfer = hashpower * BTC_PER_HASHPOWER_PER_SEC * 24 * 3600;
 
-      const balanceHistory = await BalanceHistory.findOne({
-        user: userId,
-        date: { $gte: startOfYesterday, $lte: endOfYesterday },
-      });
+      const user_balance = await Balance.findOne({ user: userId });
+      if (user_balance) {
+        user_balance.BTC_DEPOSIT = parseFloat(user_balance.BTC_DEPOSIT.toString()) + btcToTransfer;
+        user_balance.BTC = 0;
+        await user_balance.save();
+      }
 
-      const yesterdayBTC = balanceHistory?.balances?.BTC
-        ? parseFloat(balanceHistory.balances.BTC.toString())
-        : 0;
+      // Reset user mining
+      await UserMiningDetail.findOneAndUpdate(
+        { user: userId },
+        {
+          $set: {
+            hashpower: 0,
+            mining_isactive: false,
+            rewarded_ads_watched: 0,
+            random_ads_watched: 0,
+            start_time: 0,
+            stop_time: 0,
+          },
+        }
+      );
 
-      // How long has mining been active since start time
-      const miningDurationSec = Math.min(elapsed / 1000, MAX_MINING_DURATION_MS / 1000);
+      // Update balance history for that day
+      const todayLocal = new Date(nowLocal.getFullYear(), nowLocal.getMonth(), nowLocal.getDate());
+      await BalanceHistory.findOneAndUpdate(
+        { user: userId, date: todayLocal },
+        {
+          $set: {
+            user: userId,
+            date: todayLocal,
+            balances: {
+              BTC: 0,
+              BNB: user_balance?.BNB ?? 0,
+              USDT: user_balance?.USDT ?? 0,
+              USDC: user_balance?.USDC ?? 0,
+              LTC: user_balance?.LTC ?? 0,
+            },
+          },
+        },
+        { upsert: true, new: true }
+      );
 
-      console.log("User Mining - Yesterday's Balance: ", yesterdayBTC);
-      console.log("User Mining - Total Mining Duration: ", miningDurationSec);
-
-      // Calculate earned BTC based on hashpower and duration
-      calculated_btc = ((hashpower * BTC_PER_HASHPOWER_PER_SEC) * miningDurationSec);
+      calculated_btc = 0;
     }
 
-    console.log("Calculated BTC: ", calculated_btc);
-
-    // Return combined response
-    res.json({
+    return res.json({
       success: true,
       mining_details,
-      calculated_btc,
+      calculated_btc: parseFloat(calculated_btc.toFixed(12)),
+      message: "Mining details fetched successfully (local time based).",
     });
+
   } catch (err) {
     console.error("Error fetching mining details:", err);
-    res.status(500).json({ success: false, error: err.message });
+    return res.status(500).json({ success: false, message: "Server error", error: err.message });
   }
 });
 
@@ -97,8 +133,11 @@ router.post("/", async (req, res) => {
       start_time, 
       stop_time,
       local_start_time,
-      local_stop_time 
+      local_stop_time,
+      offset
     } = req.body;
+
+    await mongoose.connect(MONGO_URI);
 
     if (!user_id) {
       return res.status(400).json({ success: false, message: "user_id is required" });
@@ -120,6 +159,8 @@ router.post("/", async (req, res) => {
     if (typeof local_stop_time === "string" && local_stop_time.trim() !== "") {
       updateData.local_stop_time = local_stop_time;
     }
+
+    if (typeof offset === "number") updateData.offset = offset;
 
     if (typeof start_time === "number") {
       const now = Date.now();

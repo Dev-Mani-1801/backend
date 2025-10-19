@@ -47,6 +47,10 @@ const UserMiningSchema = new mongoose.Schema({
     type: String,
     default: null,
   },
+  offset: {
+    type: Number,
+    default: null
+  },
 }, { timestamps: true });
 
 export default mongoose.model("UserMining", UserMiningSchema);
