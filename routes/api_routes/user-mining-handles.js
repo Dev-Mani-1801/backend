@@ -62,6 +62,32 @@ router.get("/:userId", async (req, res) => {
       }
     }
 
+    console.log("Local Start Time: ", localStart);
+    console.log("Current Local Time: ", nowLocal);
+
+    const startDayLocal = new Date(
+      nowLocal.getFullYear(),
+      nowLocal.getMonth(),
+      nowLocal.getDate()
+    );
+    const startDateLocal = new Date(
+      localStart.getFullYear(),
+      localStart.getMonth(),
+      localStart.getDate()
+    );
+
+    const isSameLocalDay =
+      startDateLocal.getFullYear() === startDayLocal.getFullYear() &&
+      startDateLocal.getMonth() === startDayLocal.getMonth() &&
+      startDateLocal.getDate() === startDayLocal.getDate();
+
+    const nextMidnightLocal = new Date(nowLocal.getFullYear(), nowLocal.getMonth(), nowLocal.getDate() + 1);
+
+    console.log("Store Start DateTime Local: ", startDateLocal);
+    console.log("Current DateTime Local: ", startDayLocal);
+    console.log("Same Day ? ", isSameLocalDay);
+    console.log(`Time left until reset: ${((nextMidnightLocal - nowLocal) / (1000 * 60)).toFixed(2)} mins (${((nextMidnightLocal - nowLocal) / (1000 * 60 * 60)).toFixed(2)} hrs)`);
+
     // Calculate elapsed time
     const elapsedLocalMs = nowLocal.getTime() - localStart.getTime();
     const elapsedLocalHours = elapsedLocalMs / (1000 * 60 * 60);
@@ -72,7 +98,7 @@ router.get("/:userId", async (req, res) => {
 
     let calculated_btc = 0;
 
-    if (elapsedLocalHours < 24) {
+    if (isSameLocalDay) {
       // Within allowed duration (10 mins for testing)
       const miningDurationSec = Math.min(elapsedLocalMs / 1000, MAX_MINING_DURATION_MS / 1000);
       calculated_btc = hashpower * BTC_PER_HASHPOWER_PER_SEC * miningDurationSec;
@@ -225,7 +251,7 @@ router.post("/", async (req, res) => {
       { new: true, upsert: true }
     );
 
-    console.log("Setting User Data: ", updateData);
+    console.log("Setting User Data: ", updateData, user_id);
 
     res.json({ success: true, mining_details });
   } catch (err) {
