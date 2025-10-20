@@ -138,12 +138,17 @@ router.get("/:userId", async (req, res) => {
       );
 
       const todayLocal = new Date(nowLocal.getFullYear(), nowLocal.getMonth(), nowLocal.getDate());
+      const yesterdayLocal = new Date(
+        nowLocal.getFullYear(),
+        nowLocal.getMonth(),
+        nowLocal.getDate() - 1
+      );
       await BalanceHistory.findOneAndUpdate(
-        { user: userId, date: todayLocal },
+        { user: userId, date: yesterdayLocal },
         {
           $set: {
             user: userId,
-            date: todayLocal,
+            date: yesterdayLocal,
             balances: {
               BTC: calculated_btc,
               BNB: user_balance?.BNB ?? 0,
