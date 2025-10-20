@@ -1,10 +1,7 @@
 import express from 'express';
 import mongoose from 'mongoose';
 import UserMiningDetail from "../models/UserMiningDetails.js";
-import BalanceHistory from "../models/BalanceHistory.js";
 import Balance from "../models/Balance.js";
-import DailyRewardClaim from '../models/DailyRewardClaim.js';
-import { parse } from 'date-fns';
 
 const router = express.Router();
 
