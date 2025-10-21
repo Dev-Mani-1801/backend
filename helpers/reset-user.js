@@ -13,7 +13,7 @@ const MONGO_URI =
   "mongodb+srv://growthdev1:Ji0LlqjCuFzlYP9s@cluster0.zgxt7d9.mongodb.net/fakeminingapp?retryWrites=true&w=majority";
 
 // GET user mining details by userId
-    const userId  = "68f343714c6a2f6c5835d668";
+    const userId  = "68f72e945244be893f13f6ab";
     await mongoose.connect(MONGO_URI);
 
     const user_balance = await Balance.findOne({ user: userId });

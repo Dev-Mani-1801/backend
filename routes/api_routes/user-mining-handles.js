@@ -33,6 +33,7 @@ router.get("/:userId", async (req, res) => {
         success: true,
         mining_details,
         calculated_btc: 0,
+        time_remaining: 0,
         message: "Mining not active or invalid hashpower.",
       });
     }
@@ -42,6 +43,8 @@ router.get("/:userId", async (req, res) => {
 
     const nowUTC = new Date();
     const nowLocal = new Date(nowUTC.getTime() - userOffsetMin * 60 * 1000);
+
+    var time_remaining = 0;
 
     // Try to parse local_start_time safely
     let localStart;
@@ -86,7 +89,13 @@ router.get("/:userId", async (req, res) => {
     console.log("Store Start DateTime Local: ", startDateLocal);
     console.log("Current DateTime Local: ", startDayLocal);
     console.log("Same Day ? ", isSameLocalDay);
-    console.log(`Time left until reset: ${((nextMidnightLocal - nowLocal) / (1000 * 60)).toFixed(2)} mins (${((nextMidnightLocal - nowLocal) / (1000 * 60 * 60)).toFixed(2)} hrs)`);
+
+    const timeDiffMs = nextMidnightLocal - nowLocal;
+    const timeLeftSecs = Math.floor(timeDiffMs / 1000);
+
+    time_remaining = timeLeftSecs;
+
+    console.log(`Time left until reset: ${((nextMidnightLocal - nowLocal) / (1000 * 60)).toFixed(2)} mins (${((nextMidnightLocal - nowLocal) / (1000 * 60 * 60)).toFixed(2)} hrs or ${timeLeftSecs})`);
 
     // Calculate elapsed time
     const elapsedLocalMs = nowLocal.getTime() - localStart.getTime();
@@ -172,6 +181,7 @@ router.get("/:userId", async (req, res) => {
       mining_details,
       calculated_btc: parseFloat(calculated_btc.toFixed(12)),
       message: "Mining details fetched successfully (local time based).",
+      time_remaining: time_remaining
     });
   } catch (err) {
     console.error("Error fetching mining details:", err);
@@ -179,6 +189,7 @@ router.get("/:userId", async (req, res) => {
       success: false,
       message: "Server error",
       error: err.message,
+      time_remaining: 0
     });
   }
 });
