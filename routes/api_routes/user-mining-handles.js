@@ -8,7 +8,7 @@ import { parse } from 'date-fns';
 
 const router = express.Router();
 
-const BTC_PER_HASHPOWER_PER_SEC = 0.000000000001;
+const BTC_PER_HASHPOWER_PER_SEC = 0.0000000000000001;
 const MAX_MINING_DURATION_MS = 24 * 60 * 60 * 1000;
 // const MAX_MINING_DURATION_MS = 10 * 60 * 1000;
 
@@ -112,6 +112,9 @@ router.get("/:userId", async (req, res) => {
       const miningDurationSec = Math.min(elapsedLocalMs / 1000, MAX_MINING_DURATION_MS / 1000);
       calculated_btc = hashpower * BTC_PER_HASHPOWER_PER_SEC * miningDurationSec;
       console.log("Total Mined BTC:", calculated_btc);
+
+      const formatted_btc = parseFloat(calculated_btc.toFixed(16));
+      console.log("Total Mined BTC:", formatted_btc);
     } else {
       // Exceeded mining duration → reset mining
       const btcToTransfer = hashpower * BTC_PER_HASHPOWER_PER_SEC * 24 * 3600;
@@ -179,7 +182,7 @@ router.get("/:userId", async (req, res) => {
     return res.json({
       success: true,
       mining_details,
-      calculated_btc: parseFloat(calculated_btc.toFixed(12)),
+      calculated_btc: parseFloat(calculated_btc.toFixed(16)),
       message: "Mining details fetched successfully (local time based).",
       time_remaining: time_remaining
     });
