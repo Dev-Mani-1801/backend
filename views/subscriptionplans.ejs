@@ -16,28 +16,33 @@
 
         <div class="modal-body">
             <div class="mb-3">
-            <label for="name" class="form-label">Plan Name</label>
-            <input type="text" class="form-control" name="name" id="name" required />
+                <label for="name" class="form-label">Plan Name</label>
+                <input type="text" class="form-control" name="name" id="name" required />
             </div>
 
             <div class="mb-3">
-            <label for="hashrate" class="form-label">Hashrate</label>
-            <input type="number" class="form-control" name="hashrate" id="hashrate" required />
+                <label for="hashrate" class="form-label">Hashrate</label>
+                <input type="number" class="form-control" name="hashrate" id="hashrate" required />
             </div>
 
             <div class="mb-3">
-            <label for="duration" class="form-label">Duration (Months)</label>
-            <input type="number" class="form-control" name="duration" id="duration" required />
+                <label for="unit" class="form-label">Unit</label>
+                <input type="text" class="form-control" name="hashrate_unit" id="hashrate_unit" required />
             </div>
 
             <div class="mb-3">
-            <label for="maintenance_cost" class="form-label">Maintenance Cost ($)</label>
-            <input type="number" step="0.01" class="form-control" name="maintenance_cost" id="maintenance_cost" required />
+                <label for="duration" class="form-label">Duration (Months)</label>
+                <input type="number" class="form-control" name="duration" id="duration" required />
             </div>
 
             <div class="mb-3">
-            <label for="plan_cost" class="form-label">Plan Cost ($)</label>
-            <input type="number" step="0.01" class="form-control" name="plan_cost" id="plan_cost" required />
+                <label for="maintenance_cost" class="form-label">Maintenance Cost ($)</label>
+                <input type="number" step="0.01" class="form-control" name="maintenance_cost" id="maintenance_cost" required />
+            </div>
+
+            <div class="mb-3">
+                <label for="plan_cost" class="form-label">Plan Cost ($)</label>
+                <input type="number" step="0.01" class="form-control" name="plan_cost" id="plan_cost" required />
             </div>
         </div>
 
@@ -78,6 +83,7 @@
                         <th>#</th>
                         <th>Name</th>
                         <th>Hashrate</th>
+                        <th>Unit</th>
                         <th>Duration (Months)</th>
                         <th>Maintenance Cost</th>
                         <th>Plan Cost</th>
@@ -90,6 +96,7 @@
                             <td><%= (page - 1) * limit + index + 1 %></td>
                             <td><%= plan.name %></td>
                             <td><%= plan.hashrate %></td>
+                            <td><%= plan.unit %></td>
                             <td><%= plan.duration %></td>
                             <td>$<%= plan.maintenance_cost.toFixed(2) %></td>
                             <td>$<%= plan.plan_cost.toFixed(2) %></td>
@@ -147,6 +154,7 @@
                             <td>${index + 1}</td>
                             <td>${plan.name}</td>
                             <td>${plan.hashrate}</td>
+                            <td>${plan.unit}</td>
                             <td>${plan.duration}</td>
                             <td>$${plan.maintenance_cost}</td>
                             <td>$${plan.plan_cost}</td>

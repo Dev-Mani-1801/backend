@@ -7,13 +7,14 @@ const router = express.Router();
 
 router.post('/create', async (req, res) => {
   try {
-    const { name, hashrate, duration, maintenance_cost, plan_cost } = req.body;
+    const { name, hashrate, hashrate_unit, duration, maintenance_cost, plan_cost } = req.body;
 
     const newPlan = new SubscriptionPlan({
       id: uuidv4(),
       name,
       hashrate: parseFloat(hashrate),
       duration: parseInt(duration),
+      unit: hashrate_unit,
       maintenance_cost: parseFloat(maintenance_cost),
       plan_cost: parseFloat(plan_cost),
     });

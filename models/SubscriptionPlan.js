@@ -15,6 +15,11 @@ const subscriptionPlanSchema = new mongoose.Schema({
     type: Number,
     required: true
   },
+  unit: {
+    type: String,
+    required: true,
+    default: "GH/s"
+  },
   duration: {
     type: Number, // in months
     required: true

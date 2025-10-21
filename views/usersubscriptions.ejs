@@ -42,7 +42,7 @@
                     </thead>
                     <tbody id="subscriptionsTbody">
                     <% UserSubs.forEach((sub, index) => { %>
-                        <tr data-id="<%= sub._id %>">
+                        <tr data-id="<%= sub.id %>">
                             <td><%= (page - 1) * limit + index + 1 %></td>
                             <td><%= sub.user._id %></td>
                             <td><%= sub.user.email %></td>
