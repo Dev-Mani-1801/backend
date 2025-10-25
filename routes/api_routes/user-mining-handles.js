@@ -171,7 +171,7 @@ router.get("/:userId", async (req, res) => {
       success: false,
       message: "Server error",
       error: err.message,
-      time_remaining: time_remaining_secs ?? 0,
+      time_remaining: 0,
       daily_reward_claimed: false
     });
   }
