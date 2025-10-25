@@ -118,6 +118,8 @@ router.get("/:userId", async (req, res) => {
 
       await DailyRewardClaim.deleteMany({ userId });
 
+      await DailyFreeMiner.deleteMany({ userId });
+
       await UserMiningDetail.findOneAndUpdate(
         { user: userId },
         {
