@@ -20,6 +20,7 @@ import google_ads_handle from './api_routes/google_ads.js'
 import delete_handles from './api_routes/delete_handles.js'
 import security_handles from './api_routes/security_handles.js'
 import user_mining_handles from './api_routes/user-mining-handles.js'
+import claim_daily_miner from './api_routes/daily-miner-handles.js'
 
 const router = express.Router();
 
@@ -168,5 +169,6 @@ router.use('/google-ads', google_ads_handle);
 router.use('/delete-handles', delete_handles);
 router.use('/security', security_handles);
 router.use('/user_mining', user_mining_handles);
+router.use('/claim_daily_miner', claim_daily_miner);
 
 export default router;

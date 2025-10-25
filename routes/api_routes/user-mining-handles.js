@@ -4,7 +4,7 @@ import UserMiningDetail from "../../models/UserMiningDetails.js";
 import BalanceHistory from "../../models/BalanceHistory.js";
 import Balance from "../../models/Balance.js";
 import DailyRewardClaim from '../../models/DailyRewardClaim.js';
-import { parse } from 'date-fns';
+import DailyFreeMiner from "../../models/DailyMiner.js";
 
 const router = express.Router();
 
@@ -29,7 +29,7 @@ router.get("/:userId", async (req, res) => {
 
     let mining_details = await UserMiningDetail.findOne({ user: userId });
     if (!mining_details) {
-      return res.status(404).json({ success: false, message: "Mining details not found." });
+      return res.status(404).json({ success: false, message: "Mining details not found.", daily_reward_claimed: false });
     }
 
     const { hashpower, offset, local_start_time } = mining_details;
@@ -45,6 +45,7 @@ router.get("/:userId", async (req, res) => {
         calculated_btc: 0,
         time_remaining: 0,
         message: "Mining not active or invalid hashpower.",
+        daily_reward_claimed: false
       });
     }
 
@@ -143,12 +144,24 @@ router.get("/:userId", async (req, res) => {
     console.log("Remaining Time: ", time_remaining_secs);
     console.log(`Time remaining: ${(time_remaining_secs / 60).toFixed(2)} mins (${(time_remaining_secs / 3600).toFixed(2)} hrs)`);
 
+
+    var DailyRewardClaimed = false;
+
+    const existingClaim = await DailyFreeMiner.findOne({
+      userId
+    });
+
+    if (existingClaim) {
+      DailyRewardClaimed = true;
+    }
+
     return res.json({
       success: true,
       mining_details,
       calculated_btc: parseFloat(calculated_btc.toFixed(16)),
       message: "Mining details fetched successfully (local time based).",
       time_remaining: time_remaining_secs ?? 0,
+      daily_reward_claimed: DailyRewardClaimed
     });
   } catch (err) {
     console.error("Error fetching mining details:", err);
@@ -157,6 +170,7 @@ router.get("/:userId", async (req, res) => {
       message: "Server error",
       error: err.message,
       time_remaining: time_remaining_secs ?? 0,
+      daily_reward_claimed: false
     });
   }
 });
