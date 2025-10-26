@@ -55,7 +55,12 @@ router.get("/:userId", async (req, res) => {
     let dbHour = parseInt(dbParts[3], 10);
     if (dbAmPm === "PM" && dbHour < 12) dbHour += 12;
     if (dbAmPm === "AM" && dbHour === 12) dbHour = 0;
-    const dbLocalStart = new Date(dbParts[2], dbParts[0] - 1, dbParts[1], dbHour, parseInt(dbParts[4]), parseInt(dbParts[5]));
+
+    const startday = parseInt(dbParts[0], 10);
+    const startmonth = parseInt(dbParts[1], 10) - 1;
+    const startyear = parseInt(dbParts[2], 10);
+
+    const dbLocalStart = new Date(startyear, startmonth, startday, dbHour, parseInt(dbParts[4]), parseInt(dbParts[5]));
 
     // Parse client local_time
     const clientParts = local_time.match(/\d+/g);
@@ -63,7 +68,12 @@ router.get("/:userId", async (req, res) => {
     let clientHour = parseInt(clientParts[3], 10);
     if (clientAmPm === "PM" && clientHour < 12) clientHour += 12;
     if (clientAmPm === "AM" && clientHour === 12) clientHour = 0;
-    const clientLocalTime = new Date(clientParts[2], clientParts[0] - 1, clientParts[1], clientHour, parseInt(clientParts[4]), parseInt(clientParts[5]));
+
+    const day = parseInt(clientParts[0], 10);
+    const month = parseInt(clientParts[1], 10) - 1;
+    const year = parseInt(clientParts[2], 10);
+
+    const clientLocalTime = new Date(year, month, day, clientHour, parseInt(clientParts[4]), parseInt(clientParts[5]));
 
     // Compute elapsed time
     let elapsedMs = Math.max(0, clientLocalTime.getTime() - dbLocalStart.getTime());
@@ -73,6 +83,12 @@ router.get("/:userId", async (req, res) => {
     const sameDay = isSameLocalDay(dbLocalStart, clientLocalTime);
 
     let calculated_btc = 0;
+
+    const yesterdayLocall = new Date(clientLocalTime.getFullYear(), clientLocalTime.getMonth(), clientLocalTime.getDate() - 1);
+
+    console.log("DB Local Time: ", dbLocalStart);
+    console.log("Client Local Time: ", clientLocalTime);
+    console.log("Client Local Yesterday: ", yesterdayLocall);
 
     if (sameDay) {
       const miningDurationSec = Math.min(elapsedSec, MAX_MINING_DURATION_MS / 1000);
@@ -95,7 +111,6 @@ router.get("/:userId", async (req, res) => {
         await user_balance.save();
       }
 
-      const todayLocal = new Date(clientLocalTime.getFullYear(), clientLocalTime.getMonth(), clientLocalTime.getDate());
       const yesterdayLocal = new Date(clientLocalTime.getFullYear(), clientLocalTime.getMonth(), clientLocalTime.getDate() - 1);
 
       await BalanceHistory.findOneAndUpdate(
