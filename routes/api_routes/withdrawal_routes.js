@@ -1,5 +1,7 @@
 import express from "express";
 import Withdrawal from "../../models/Withdrawal.js";
+import Balance from "../../models/Balance.js";
+import mongoose from "mongoose";
 import fetch from "node-fetch";
 import Client from "lightning-client";
 import fs from "fs";
@@ -13,6 +15,68 @@ const client = new Client(rpcPath);
 function isValidSpeedLN(address) {
   const regex = /^[a-zA-Z0-9_-]+@speed\.app$/;
   return regex.test(address);
+}
+
+/**
+ * Helper function to safely deduct balance with transaction locks
+ * @param {string} userId - User ID
+ * @param {number} baseAmount - Amount to deduct from BTC_DEPOSIT
+ * @param {Object} session - MongoDB session for transaction
+ * @returns {Promise<Object>} Updated balance
+ */
+async function deductBTCDepositBalance(userId, baseAmount, session) {
+  const balance = await Balance.findOneAndUpdate(
+    { 
+      user: userId,
+      BTC_DEPOSIT: { $gte: mongoose.Types.Decimal128.fromString(baseAmount.toString()) }
+    },
+    { 
+      $inc: { 
+        BTC_DEPOSIT: mongoose.Types.Decimal128.fromString((-baseAmount).toString()) 
+      } 
+    },
+    { 
+      new: true, 
+      session,
+      runValidators: true
+    }
+  );
+
+  if (!balance) {
+    throw new Error("Insufficient BTC_DEPOSIT balance or user not found");
+  }
+
+  return balance;
+}
+
+/**
+ * Helper function to restore balance in case of failed withdrawal
+ * @param {string} userId - User ID
+ * @param {number} baseAmount - Amount to restore to BTC_DEPOSIT
+ * @param {Object} session - MongoDB session for transaction
+ * @returns {Promise<Object>} Updated balance
+ */
+async function restoreBTCDepositBalance(userId, baseAmount, session) {
+  const balance = await Balance.findOneAndUpdate(
+    { user: userId },
+    { 
+      $inc: { 
+        BTC_DEPOSIT: mongoose.Types.Decimal128.fromString(baseAmount.toString()) 
+      } 
+    },
+    { 
+      new: true, 
+      session,
+      runValidators: true,
+      upsert: false
+    }
+  );
+
+  if (!balance) {
+    throw new Error("User balance not found for restoration");
+  }
+
+  return balance;
 }
 
 /**
@@ -185,6 +249,8 @@ router.patch("/:id/confirm", async (req, res) => {
 });
 
 router.post("/create-speed-payment", async (req, res) => {
+  const session = await mongoose.startSession();
+  
   try {
     const {
       amount,
@@ -193,6 +259,7 @@ router.post("/create-speed-payment", async (req, res) => {
       payment_methods = ["lightning"],
       metadata,
       speed_wallet_address,
+      baseAmount,
     } = req.body;
 
     client.getinfo().then(info => {
@@ -205,97 +272,136 @@ router.post("/create-speed-payment", async (req, res) => {
       return res.status(400).json({ error: "Amount is required" });
     }
 
+    if (!baseAmount || baseAmount <= 0) {
+      return res.status(400).json({ error: "Base amount is required and must be positive" });
+    }
+
+    if (!metadata?.user_id) {
+      return res.status(400).json({ error: "User ID is required in metadata" });
+    }
+
     if (!speed_wallet_address || !isValidSpeedLN(speed_wallet_address)) {
       return res.status(400).json({ error: "Invalid Speed wallet address" });
     }
 
-    // 1. Request invoice from Speed API
-    const response = await fetch("https://api.tryspeed.com/payments", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization:
-          "Basic " +
-          Buffer.from(SPEED_API_KEY + ":").toString("base64"),
-        "speed-version": "2022-10-15",
-      },
-      body: JSON.stringify({
-        amount,
-        currency,
-        target_currency,
-        payment_methods,
-        metadata,
-        to: speed_wallet_address, // tell Speed who to pay
-      }),
-    });
+    // Start transaction
+    await session.startTransaction();
 
-    const data = await response.json();
-    if (!response.ok) {
-      return res.status(response.status).json(data);
-    }
+    try {
+      // 1. Check and deduct balance first
+      const updatedBalance = await deductBTCDepositBalance(metadata.user_id, baseAmount, session);
+      console.log(`Balance deducted for user ${metadata.user_id}: ${baseAmount} from BTC_DEPOSIT`);
 
-    if (!data?.id) {
-      return res
-        .status(500)
-        .json({ error: "Speed API did not return a valid invoice" });
-    }
-
-    const withdrawal = await Withdrawal.create({
+      // 2. Create withdrawal record
+      const withdrawal = await Withdrawal.create([{
         userId: metadata.user_id,
         asset: target_currency,
         chain: "BTC",
         toAddress: speed_wallet_address,
         amountNumeric: amount,
         status: "PENDING"
+      }], { session });
+
+      // 3. Request invoice from Speed API
+      const response = await fetch("https://api.tryspeed.com/payments", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization:
+            "Basic " +
+            Buffer.from(SPEED_API_KEY + ":").toString("base64"),
+          "speed-version": "2022-10-15",
+        },
+        body: JSON.stringify({
+          amount,
+          currency,
+          target_currency,
+          payment_methods,
+          metadata,
+          to: speed_wallet_address, // tell Speed who to pay
+        }),
       });
 
-    const bolt11 = data?.invoice?.bolt11;
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(`Speed API error: ${data?.error || 'Unknown error'}`);
+      }
 
-    try {
-      // 2. Pay the invoice using Core Lightning
-      if(bolt11){
-      const payment = await client.pay(bolt11);
+      if (!data?.id) {
+        throw new Error("Speed API did not return a valid invoice");
+      }
 
-      // 3. Update withdrawal record after successful payment
-      await Withdrawal.findByIdAndUpdate(
-        withdrawal._id,
-        {
-          status: "SENT",
-          txHash: payment.payment_hash,
-          approvedBy: "system",
-          approvedAt: new Date()
-        }
-      );
+      const bolt11 = data?.invoice?.bolt11;
 
-      // 4. Return result
-      res.json({
-        status: "paid",
-        preimage: payment.payment_preimage,
-        hash: payment.payment_hash,
-        amount_msat: payment.amount_msat,
-        fees_msat: payment.fee_msat,
-        speed_response: data,
-        withdrawal_id: withdrawal._id
-      });
+      if (bolt11) {
+        // 4. Pay the invoice using Core Lightning
+        const payment = await client.pay(bolt11);
+
+        // 5. Update withdrawal record after successful payment
+        await Withdrawal.findByIdAndUpdate(
+          withdrawal[0]._id,
+          {
+            status: "SENT",
+            txHash: payment.payment_hash,
+            approvedBy: "system",
+            approvedAt: new Date()
+          },
+          { session }
+        );
+
+        // Commit transaction
+        await session.commitTransaction();
+
+        // 6. Return result
+        return res.json({
+          status: "paid",
+          preimage: payment.payment_preimage,
+          hash: payment.payment_hash,
+          amount_msat: payment.amount_msat,
+          fees_msat: payment.fee_msat,
+          speed_response: data,
+          withdrawal_id: withdrawal[0]._id,
+          balance_deducted: baseAmount,
+          remaining_btc_deposit: updatedBalance.BTC_DEPOSIT
+        });
+      } else {
+        throw new Error("No bolt11 invoice received from Speed API");
       }
 
     } catch (paymentError) {
-      // Update withdrawal status to FAILED if payment fails
-      await Withdrawal.findByIdAndUpdate(
-        withdrawal._id,
-        {
-          status: "FAILED"
-        }
-      );
+      // Rollback transaction on any error
+      await session.abortTransaction();
       
-      console.error("Lightning payment failed:", paymentError);
-      res.status(500).json({ error: "Internal server error" });
+      console.error("Payment processing failed:", paymentError);
+      
+      // Return specific error messages
+      if (paymentError.message.includes("Insufficient BTC_DEPOSIT balance")) {
+        return res.status(400).json({ 
+          error: "Insufficient BTC deposit balance",
+          details: paymentError.message 
+        });
+      }
+      
+      return res.status(500).json({ 
+        error: "Payment processing failed",
+        details: paymentError.message 
+      });
     }
-         return res.status(200).json({ message: "Transaction successful" });
 
   } catch (error) {
+    // Ensure transaction is aborted in case of any unexpected error
+    if (session.inTransaction()) {
+      await session.abortTransaction();
+    }
+    
     console.error("Error creating Speed payment:", error);
-    res.status(500).json({ error: "Internal server error" });
+    res.status(500).json({ 
+      error: "Internal server error",
+      details: error.message 
+    });
+  } finally {
+    // Always end the session
+    await session.endSession();
   }
 });
 
