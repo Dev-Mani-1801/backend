@@ -355,14 +355,14 @@ router.post("/create-speed-payment", async (req, res) => {
         // 6. Return result
         return res.json({
           status: "paid",
-          preimage: payment.payment_preimage,
-          hash: payment.payment_hash,
-          amount_msat: payment.amount_msat,
-          fees_msat: payment.fee_msat,
-          speed_response: data,
-          withdrawal_id: withdrawal[0]._id,
-          balance_deducted: baseAmount,
-          remaining_btc_deposit: updatedBalance.BTC_DEPOSIT
+          // preimage: payment.payment_preimage,
+          // hash: payment.payment_hash,
+          // amount_msat: payment.amount_msat,
+          // fees_msat: payment.fee_msat,
+          // speed_response: data,
+          // withdrawal_id: withdrawal[0]._id,
+          // balance_deducted: baseAmount,
+          // remaining_btc_deposit: updatedBalance.BTC_DEPOSIT
         });
       } else {
         throw new Error("No bolt11 invoice received from Speed API");
