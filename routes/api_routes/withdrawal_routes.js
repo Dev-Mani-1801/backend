@@ -291,6 +291,8 @@ router.post("/create-speed-payment", async (req, res) => {
       console.error("Lightning payment failed:", paymentError);
       res.status(500).json({ error: "Internal server error" });
     }
+         return res.status(200).json({ message: "Transaction successful" });
+
   } catch (error) {
     console.error("Error creating Speed payment:", error);
     res.status(500).json({ error: "Internal server error" });
