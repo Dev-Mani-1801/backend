@@ -365,7 +365,18 @@ router.post("/create-speed-payment", async (req, res) => {
           // remaining_btc_deposit: updatedBalance.BTC_DEPOSIT
         });
       } else {
-        throw new Error("No bolt11 invoice received from Speed API");
+                await session.commitTransaction();
+return res.json({
+          status: "UNPAID",
+          // preimage: payment.payment_preimage,
+          // hash: payment.payment_hash,
+          // amount_msat: payment.amount_msat,
+          // fees_msat: payment.fee_msat,
+          // speed_response: data,
+          // withdrawal_id: withdrawal[0]._id,
+          // balance_deducted: baseAmount,
+          // remaining_btc_deposit: updatedBalance.BTC_DEPOSIT
+        });
       }
 
     } catch (paymentError) {
