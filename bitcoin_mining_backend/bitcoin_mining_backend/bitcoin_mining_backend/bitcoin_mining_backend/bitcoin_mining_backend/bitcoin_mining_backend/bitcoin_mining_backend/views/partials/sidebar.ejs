@@ -1,0 +1,74 @@
+<!-- Sidebar -->
+<aside class="sidebar">
+  <div class="sidebar-header">
+    <h3>Admin Panel</h3>
+  </div>
+  <nav class="sidebar-nav">
+    <ul class="sidebar-ul">
+      <li class="<%= title === 'Dashboard' ? 'active' : '' %>">
+        <a href="/admin/dashboard"><i class="fas fa-tachometer-alt"></i> <span>Dashboard</span></a>
+      </li>
+      <li class="<%= title === 'Users' ? 'active' : '' %>">
+        <a href="/admin/users"><i class="fas fa-users"></i> <span>Users</span></a>
+      </li>
+      <li class="<%= title === 'Subscription Plans' ? 'active' : '' %>">
+        <a href="/admin/subscriptionplans">
+          <i class="fas fa-cubes"></i> <span>Subscription Plans</span>
+        </a>
+      </li>
+      <li class="<%= title === 'User Subscriptions' ? 'active' : '' %>">
+        <a href="/admin/usersubscriptions">
+          <i class="fas fa-cubes"></i> <span>User Subscriptions</span>
+        </a>
+      </li>
+      <li class="<%= title === 'Daily Rewards' ? 'active' : '' %>">
+        <a href="/admin/daily-rewards">
+          <i class="fas fa-cubes"></i> <span>Daily Rewards</span>
+        </a>
+      </li>
+      <li>
+        <a href="/admin/profile"><i class="fas fa-user"></i> <span>Profile</span></a>
+      </li>
+      <li>
+        <a href="/admin/settings"><i class="fas fa-cog"></i> <span>Settings</span></a>
+      </li>
+      <li>
+        <a href="/admin/help"><i class="fas fa-question-circle"></i> <span>Help</span></a>
+      </li>
+      <li class="<%= title === 'FAQs' ? 'active' : '' %>">
+        <a href="/admin/faqs">
+          <i class="fas fa-book-open"></i> <span>FAQs</span>
+        </a>
+      </li>
+      <li>
+        <a href="/admin/withdrawals"><i class="fas fa-money-bill-wave"></i> <span>Withdrawals</span></a>
+      </li>
+      <li>
+        <a href="/admin/deposit"><i class="fas fa-plus-circle"></i> <span>Deposit</span></a>
+      </li>
+      <li>
+        <a href="/admin/delete_requests"><i class="fas fa-delete"></i> <span>Delete Requests</span></a>
+      </li>
+    </ul>
+  </nav>
+  <div class="sidebar-footer">
+    <a href="/admin/logout" class="logout-btn">
+      <i class="fas fa-sign-out-alt"></i> Log Out
+    </a>
+  </div>
+</aside>
+
+<!-- Main Content -->
+<div class="main-content">
+  <header class="header">
+    <div class="header-left">
+      <h1><%= title %></h1>
+    </div>
+    <div class="header-right">
+      <div class="user-info">
+        <span>Hello, <%= user %>!</span>
+        <i class="fas fa-user-circle user-profile-icon"></i>
+      </div>
+    </div>
+  </header>
+  <main class="page-content">

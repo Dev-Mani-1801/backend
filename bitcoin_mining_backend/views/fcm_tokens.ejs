@@ -1,0 +1,125 @@
+<%- include('partials/header', { title }) %>
+<%- include('partials/sidebar', { user }) %>
+
+<div class="main-content">
+  <div id="loading" style="display: none;">Searching...</div>
+
+  <div class="card-container">
+    <div class="cards">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h2>Firebase FCM Tokens</h2>
+        <input
+          type="text"
+          id="tokenSearch"
+          class="form-control"
+          placeholder="Search by user ID or token..."
+          value="<%= searchQuery %>"
+          style="max-width: 300px;"
+        />
+      </div>
+
+      <div class="table-responsive data-table" id="tokensTableContainer">
+        <table class="table table-dark table-striped table-hover table-bordered align-middle">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>User ID</th>
+              <th>Token</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="tokensTbody">
+            <% tokens.forEach((row, index) => { %>
+              <tr>
+                <td><%= (page - 1) * limit + index + 1 %></td>
+                <td><%= row.user_id %></td>
+                <td style="max-width:400px; word-break:break-all;"><%= row.token %></td>
+                <td>
+                  <button class="btn btn-sm btn-outline-danger" onclick="deleteToken('<%= row._id %>')">
+                    <i class="fas fa-trash"></i> Delete
+                  </button>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      <div class="pagination mt-3 d-flex align-items-center">
+        <% if (page > 1) { %>
+          <a href="?page=<%= page - 1 %><%= searchQuery ? '&q=' + encodeURIComponent(searchQuery) : '' %>" class="btn btn-outline-primary me-2">Prev</a>
+        <% } %>
+
+        <span class="me-2">Page <%= page %></span>
+
+        <% if (tokens.length === limit) { %>
+          <a href="?page=<%= page + 1 %><%= searchQuery ? '&q=' + encodeURIComponent(searchQuery) : '' %>" class="btn btn-outline-primary ms-2">Next</a>
+        <% } %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const searchInput = document.getElementById('tokenSearch');
+  const tokensTbody = document.getElementById('tokensTbody');
+  let searchTimeout;
+
+  searchInput.addEventListener('input', () => {
+    clearTimeout(searchTimeout);
+
+    searchTimeout = setTimeout(async () => {
+      const query = searchInput.value.trim();
+      try {
+        const response = await fetch(`/admin/fcm?q=${encodeURIComponent(query)}&page=1`, {
+          headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        });
+
+        const data = await response.json();
+        tokensTbody.innerHTML = '';
+
+        if (data.tokens.length === 0) {
+          tokensTbody.innerHTML = '<tr><td colspan="4">No records found</td></tr>';
+          return;
+        }
+
+        data.tokens.forEach((row, index) => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${index + 1}</td>
+            <td>${row.user}</td>
+            <td style="max-width:400px; word-break:break-all;">${row.token}</td>
+            <td>
+              <button class="btn btn-sm btn-outline-danger" onclick="deleteToken('${row._id}')">
+                <i class="fas fa-trash"></i> Delete
+              </button>
+            </td>
+          `;
+          tokensTbody.appendChild(tr);
+        });
+      } catch (err) {
+        console.error('Search failed:', err);
+      }
+    }, 300);
+  });
+
+  async function deleteToken(id) {
+    if (!confirm('Delete this token?')) return;
+
+    try {
+      const res = await fetch(`/api/fcm/${id}`, { method: 'DELETE' });
+      const result = await res.json();
+
+      if (result.success) {
+        location.reload();
+      } else {
+        alert(result.message);
+      }
+    } catch (e) {
+      console.error('Failed to delete:', e);
+    }
+  }
+</script>
+
+<%- include('partials/footer') %>

@@ -1,0 +1,98 @@
+<%- include('partials/header', { title: 'Your Profile' }) %>
+<%- include('partials/sidebar', { user }) %>
+
+<div class="main-content p-4 text-light">
+  <h2 class="mb-4">Your Profile</h2>
+
+  <!-- Success/Error Messages -->
+  <% if (successMessage) { %>
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+      <i class="fas fa-check-circle me-2"></i>
+      <%= successMessage %>
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+  <% } %>
+
+  <% if (errorMessage) { %>
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+      <i class="fas fa-exclamation-circle me-2"></i>
+      <%= errorMessage %>
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+  <% } %>
+
+  <div class="profile-card bg-dark rounded-4 p-4 mb-4 d-flex align-items-center shadow-lg" style="background: linear-gradient(135deg, #0f172a, #1e293b);">
+        <div class="me-4 position-relative">
+            <img src="/images/user-placeholder.png" alt="Avatar"
+                class="rounded-circle border border-secondary"
+                style="width: 100px; height: 100px; object-fit: cover;" />
+        </div>
+
+        <div>
+            <div class="d-flex align-items-center">
+            <h3 class="mb-0 text-white" id="usernameDisplay"><%= user.name?.toUpperCase() || 'USERNAME' %></h3>
+            </div>
+        </div>
+    </div>
+
+  <form action="/api/profile/save" method="POST" class="bg-gradient rounded-4 p-4 shadow-lg" style="background: linear-gradient(135deg, #1e293b, #0f172a);">
+    <div class="row g-3">
+      <div class="col-md-6">
+        <input type="text" name="firstname" class="form-control form-control-lg bg-dark text-light border-0" placeholder="First Name" value="<%= webUser.firstname || '' %>">
+      </div>
+      <div class="col-md-6">
+        <input type="text" name="lastname" class="form-control form-control-lg bg-dark text-light border-0" placeholder="Last Name" value="<%= webUser.lastname || '' %>">
+      </div>
+      <div class="col-md-6">
+        <input type="text" name="orgname" class="form-control form-control-lg bg-dark text-light border-0" placeholder="Organization Name" value="<%= webUser.orgname || '' %>">
+      </div>
+      <div class="col-md-6">
+        <input type="text" name="location" class="form-control form-control-lg bg-dark text-light border-0" placeholder="Location" value="<%= webUser.location || '' %>">
+      </div>
+      <div class="col-md-6">
+        <input type="email" name="email" class="form-control form-control-lg bg-dark text-light border-0" placeholder="E-mail Address" value="<%= webUser.email || '' %>">
+      </div>
+      <div class="col-md-6">
+        <input type="tel" name="phone" class="form-control form-control-lg bg-dark text-light border-0" placeholder="Phone Number" value="<%= webUser.phone || '' %>">
+      </div>
+    </div>
+
+    <div class="mt-4 text-center">
+      <button type="submit" class="btn btn-lg px-5 text-white" style="background: linear-gradient(to right, #6366f1, #a855f7); border: none;">
+        Save
+      </button>
+    </div>
+  </form>
+</div>
+
+<script>
+  const editBtn = document.getElementById('editUsernameBtn');
+  const editForm = document.getElementById('editUsernameForm');
+  const cancelBtn = document.getElementById('cancelEditUsername');
+  const usernameDisplay = document.getElementById('usernameDisplay');
+
+  editBtn.addEventListener('click', () => {
+    editForm.classList.remove('d-none');
+    editBtn.style.display = 'none';
+    usernameDisplay.style.display = 'none';
+  });
+
+  cancelBtn.addEventListener('click', () => {
+    editForm.classList.add('d-none');
+    editBtn.style.display = 'inline-block';
+    usernameDisplay.style.display = 'block';
+  });
+
+  // Auto-hide alerts after 5 seconds
+  setTimeout(() => {
+    const alerts = document.querySelectorAll('.alert');
+    alerts.forEach(alert => {
+      if (alert) {
+        const bsAlert = new bootstrap.Alert(alert);
+        bsAlert.close();
+      }
+    });
+  }, 5000);
+</script>
+
+<%- include('partials/footer') %>

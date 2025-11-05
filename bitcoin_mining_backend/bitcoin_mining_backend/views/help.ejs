@@ -1,0 +1,211 @@
+<%- include('partials/header', { title: 'Support Tickets' }) %>
+<%- include('partials/sidebar', { user }) %>
+
+<div class="main-content">
+    <div id="loading" style="display: none;">Searching...</div>
+
+    <div class="modal fade" id="emailModal" tabindex="-1" aria-labelledby="emailModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <form id="emailForm" method="POST">
+            <div class="modal-content">
+                <div class="modal-header">
+                <h5 class="modal-title">Reply to Ticket</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p><strong>Name:</strong> <span id="modalName"></span></p>
+                    <p><strong>Email:</strong> <span id="modalEmail"></span></p>
+                    <textarea class="form-control" name="replyMessage" id="replyMessage" placeholder="Type your reply..." rows="5" required></textarea>
+                    <input type="hidden" id="ticketEmail" name="email">
+                </div>
+                <div class="modal-footer">
+                <button type="submit" class="btn btn-success">Send Reply</button>
+                </div>
+            </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card-container">
+        <div class="cards">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h2>Support Tickets</h2>
+                <input
+                    type="text"
+                    id="ticketSearch"
+                    class="form-control"
+                    placeholder="Search tickets..."
+                    value="<%= searchQuery || '' %>"
+                    style="max-width: 250px;"
+                />
+            </div>
+
+            <div class="table-responsive data-table" id="ticketsTableContainer">
+                <table class="table table-dark table-striped table-hover table-bordered align-middle" id="ticketsTable">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>User Name</th>
+                            <th>Email</th>
+                            <th>Message</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ticketsTbody">
+                        <% tickets.forEach((ticket, index) => { %>
+                            <tr data-id="<%= ticket._id %>" data-name="<%= ticket.name %>" data-email="<%= ticket.email %>">
+                                <td><%= (page - 1) * limit + index + 1 %></td>
+                                <td><%= ticket.name %></td>
+                                <td><%= ticket.email %></td>
+                                <td><%= ticket.message %></td>
+                                <td class="text-center">
+                                    <span class="icon-box text-primary me-1 email-btn" role="button" title="Email">
+                                        <i class="fas fa-envelope"></i>
+                                    </span>
+                                    <span class="icon-box text-danger delete-btn" role="button" title="Delete">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </span>
+                                </td>
+                            </tr>
+                        <% }) %>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            <div class="pagination mt-3 d-flex align-items-center">
+                <% if (page > 1) { %>
+                    <a href="?page=<%= page - 1 %><%= searchQuery ? '&q=' + encodeURIComponent(searchQuery) : '' %>" class="btn btn-outline-primary me-2">Prev</a>
+                <% } %>
+
+                <span class="me-2">Page <%= page %></span>
+
+                <% if (tickets.length === limit) { %>
+                    <a href="?page=<%= page + 1 %><%= searchQuery ? '&q=' + encodeURIComponent(searchQuery) : '' %>" class="btn btn-outline-primary ms-2">Next</a>
+                <% } %>
+            </div>
+        </div>
+    </div>
+
+    <!-- Live Search Script -->
+    <script>
+        const searchInput = document.getElementById('ticketSearch');
+        const ticketsTbody = document.getElementById('ticketsTbody');
+
+        let searchTimeout;
+        searchInput.addEventListener('input', () => {
+            clearTimeout(searchTimeout);
+
+            searchTimeout = setTimeout(async () => {
+                const query = searchInput.value.trim();
+
+                try {
+                    const response = await fetch(`/admin/help?q=${encodeURIComponent(query)}&page=1`, {
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    });
+
+                    const data = await response.json();
+                    ticketsTbody.innerHTML = '';
+
+                    if (data.tickets.length === 0) {
+                        ticketsTbody.innerHTML = '<tr><td colspan="5">No tickets found</td></tr>';
+                        return;
+                    }
+
+                    data.tickets.forEach((ticket, index) => {
+                        const row = document.createElement('tr');
+                        row.setAttribute('data-id', ticket._id);
+
+                        row.innerHTML = `
+                            <td>${index + 1}</td>
+                            <td>${ticket.name}</td>
+                            <td>${ticket.email}</td>
+                            <td>${ticket.message}</td>
+                            <td class="text-center">
+                                <span class="icon-box text-primary me-1 email-btn" role="button" title="Email">
+                                    <i class="fas fa-envelope"></i>
+                                </span>
+                                <span class="icon-box text-danger delete-btn" role="button" title="Delete">
+                                    <i class="fas fa-trash-alt"></i>
+                                </span>
+                            </td>
+                        `;
+
+                        ticketsTbody.appendChild(row);
+                    });
+
+                } catch (err) {
+                    console.error('Search failed:', err);
+                }
+            }, 300);
+        });
+
+        document.querySelectorAll('.delete-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const row = e.target.closest('tr');
+                const id = row.dataset.id;
+
+                if (confirm('Are you sure you want to delete this ticket?')) {
+                try {
+                    const res = await fetch(`/api/help/${id}/delete`, { method: 'DELETE' });
+                    if (res.ok) {
+                    row.remove();
+                    } else {
+                    alert('Failed to delete ticket.');
+                    }
+                } catch (err) {
+                    console.error('Delete failed:', err);
+                }
+                }
+            });
+        });
+
+        document.querySelectorAll('.email-btn').forEach(btn => {
+            btn.addEventListener('click', e => {
+                const row = e.target.closest('tr');
+                const name = row.dataset.name;
+                const email = row.dataset.email;
+
+                document.getElementById('modalName').textContent = name;
+                document.getElementById('modalEmail').textContent = email;
+                document.getElementById('ticketEmail').value = email;
+                document.getElementById('replyMessage').value = '';
+
+                const modal = new bootstrap.Modal(document.getElementById('emailModal'));
+                modal.show();
+            });
+        });
+
+        document.getElementById('emailForm').addEventListener('submit', async e => {
+            e.preventDefault();
+            const form = e.target;
+            const email = form.email.value;
+            const message = form.replyMessage.value;
+
+            try {
+                const res = await fetch('/api/help/reply', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, message })
+                });
+
+                if (res.ok) {
+                alert('Reply sent!');
+                bootstrap.Modal.getInstance(document.getElementById('emailModal')).hide();
+                } else {
+                alert('Failed to send email.');
+                }
+            } catch (err) {
+                console.error('Email send failed:', err);
+            }
+        });
+
+    </script>
+
+    <script>
+        const loading = document.getElementById('loading');
+        loading.style.display = 'block';
+        loading.style.display = 'none';
+    </script>
+
+<%- include('partials/footer') %>

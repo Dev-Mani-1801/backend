@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: bitcoin-mining-admin-panel
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SESSION_SECRET
+        value: admin-secret-key-2024-production
+      - key: MONGODB_URI
+        value: mongodb+srv://growthdev1:Ji0LlqjCuFzlYP9s@cluster0.zgxt7d9.mongodb.net/fakeminingapp?retryWrites=true&w=majority

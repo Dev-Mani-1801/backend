@@ -1,0 +1,93 @@
+<%- include('partials/header', { title }) %>
+<%- include('partials/sidebar', { user }) %>
+
+<div class="main-content">
+  <div class="card-container">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <h2>Withdrawals</h2>
+      <form class="d-flex" method="GET" action="/api/withdrawals">
+        <input type="text" name="search" class="form-control me-2" placeholder="Search userId / status / txHash" value="<%= typeof search !== 'undefined' ? search : '' %>" />
+        <button class="btn btn-outline-primary">Search</button>
+      </form>
+    </div>
+
+    <div class="table-responsive data-table">
+      <table class="table table-striped table-bordered align-middle">
+        <thead class="table-dark">
+          <tr>
+            <th>#</th>
+            <th>User</th>
+            <th>Asset</th>
+            <th>Chain</th>
+            <th>To Address</th>
+            <th>Amount</th>
+            <th>Status</th>
+            <th>TxHash</th>
+            <th>Created At</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="withdrawalsTbody">
+          <% withdrawals.forEach((w, index) => { %>
+            <tr data-id="<%= w._id %>">
+              <td><%= (page - 1) * limit + index + 1 %></td>
+              <td><%= w.userId %></td>
+              <td><%= w.asset %></td>
+              <td><%= w.chain %></td>
+              <td><%= w.toAddress %></td>
+              <td><%= w.amountNumeric.toString() %></td>
+              <td><span class="badge bg-<%= w.status === 'PENDING' ? 'warning' : w.status === 'APPROVED' ? 'info' : w.status === 'SENT' ? 'primary' : w.status === 'CONFIRMED' ? 'success' : 'danger' %>"><%= w.status %></span></td>
+              <td><%= w.txHash || '-' %></td>
+              <td><%= new Date(w.created_at).toLocaleDateString() %></td>
+              <td>
+                <% if (w.status === 'PENDING') { %>
+                  <button class="btn btn-sm btn-success approve-btn">Approve</button>
+                  <button class="btn btn-sm btn-danger reject-btn">Reject</button>
+                <% } else { %>
+                  <span>-</span>
+                <% } %>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination mt-3">
+      <% if (page > 1) { %>
+        <a href="?page=<%= page - 1 %>" class="btn btn-outline-primary me-2">Prev</a>
+      <% } %>
+      <span>Page <%= page %></span>
+      <% if (withdrawals.length === limit) { %>
+        <a href="?page=<%= page + 1 %>" class="btn btn-outline-primary ms-2">Next</a>
+      <% } %>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.querySelectorAll('.approve-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const row = btn.closest('tr');
+      const id = row.dataset.id;
+      if (!confirm('Approve this withdrawal?')) return;
+      const res = await fetch(`/api/withdrawals/${id}/approve`, { method: 'PATCH' });
+      if (res.ok) location.reload();
+      else alert('Failed to approve');
+    });
+  });
+
+  document.querySelectorAll('.reject-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const row = btn.closest('tr');
+      const id = row.dataset.id;
+      if (!confirm('Reject this withdrawal?')) return;
+      const res = await fetch(`/api/withdrawals/${id}/reject`, { method: 'PATCH' });
+      if (res.ok) location.reload();
+      else alert('Failed to reject');
+    });
+  });
+</script>
+
+<%- include('partials/footer') %>

@@ -1,0 +1,152 @@
+
+<%- include('partials/header', { title }) %>
+
+  <%- include('partials/sidebar', { title }) %>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <div class="main-content">
+
+    <main class="page-content">
+      <!-- Stats Cards -->
+      <div class="stats-grid">
+        <div class="stat-card revenue">
+          <div class="stat-info">
+            <h3>Total Revenue <i class="fas fa-dollar-sign cards-icon"></i></h3>
+            <p class="stat-value">$<%= data.totalRevenue.toLocaleString() %></p>
+            <span class="stat-change positive">+4.3% since last month</span>
+          </div>
+        </div>
+
+        <div class="stat-card users">
+          <div class="stat-info">
+            <h3>New Users <i class="fas fa-users cards-icon"></i></h3>
+            <p class="stat-value"><%= usersCount %></p>
+            <span class="stat-change positive"><%= users_diff %> since last week</span>
+          </div>
+        </div>
+
+        <div class="stat-card transactions">
+          <div class="stat-info">
+            <h3>Transactions <i class="fas fa-credit-card cards-icon"></i></h3>
+            <p class="stat-value"><%= TransactionsCount %></p>
+            <span class="stat-change positive"><%= transactions_diff %> since last week</span>
+          </div>
+        </div>
+
+        <div class="stat-card support">
+          <div class="stat-info">
+            <h3>Support Tickets <i class="fas fa-headset cards-icon"></i></h3>
+            <p class="stat-value"><%= supportTicketsCount %></p>
+            <span class="stat-change positive"><%= supportTicketsDiff %> since last week</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Performance Chart -->
+      <div class="chart-container">
+        <div class="chart-header">
+          <h3>Performance</h3>
+          <div class="chart-filters">
+            <button class="filter-btn active">1D</button>
+            <button class="filter-btn">1W</button>
+            <button class="filter-btn">1M</button>
+            <button class="filter-btn">1Y</button>
+            <button class="filter-btn">ALL</button>
+          </div>
+        </div>
+        <canvas id="performanceChart"></canvas>
+      </div>
+
+      <!-- Recent Transactions -->
+      <div class="transactions-container">
+        <div class="transactions-header">
+          <h3>Recent Transactions</h3>
+        </div>
+        <div class="transactions-list">
+          <div class="transaction-item">
+            <div class="transaction-info">
+              <h4 class="rec-t-main">Subscription Payment</h4>
+              <p class="rec-t-sub">Premium Plan - Monthly</p>
+            </div>
+            <div class="transaction-amount positive">+$19.99</div>
+          </div>
+          <div class="transaction-item">
+            <div class="transaction-info">
+              <h4 class="rec-t-main">Withdrawal to Bank</h4>
+              <p class="rec-t-sub">Account ending in ***1234</p>
+            </div>
+            <div class="transaction-amount negative">-$150.00</div>
+          </div>
+          <div class="transaction-item">
+            <div class="transaction-info">
+              <h4 class="rec-t-main">Project X Invoice</h4>
+              <p class="rec-t-sub">Payment received</p>
+            </div>
+            <div class="transaction-amount positive">+$2,500.00</div>
+          </div>
+          <div class="transaction-item">
+            <div class="transaction-info">
+              <h4>Software License Renewal</h4>
+              <p class="rec-t-sub">Annual fee</p>
+            </div>
+            <div class="transaction-amount negative">-$99.00</div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+        // Performance Chart
+        const ctx = document.getElementById('performanceChart').getContext('2d');
+        const chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                datasets: [{
+                    label: 'Revenue',
+                    data: [3000, 4500, 3200, 5100, 4800, 6200, 5800, 7200, 6800, 8100, 7500, 9200],
+                    borderColor: '#8B5CF6',
+                    backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                layout: {
+                    padding: {
+                        bottom: 30
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        },
+                        ticks: {
+                            color: '#9CA3AF'
+                        }
+                    },
+                    x: {
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        },
+                        ticks: {
+                            color: '#9CA3AF'
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+
+<%- include('partials/footer') %>
