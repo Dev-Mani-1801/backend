@@ -234,7 +234,7 @@ router.post("/create-speed-payment", async (req, res) => {
       return res.status(response.status).json(data);
     }
 
-    if (!data.invoice || !data.invoice.bolt11) {
+    if (!data?.id) {
       return res
         .status(500)
         .json({ error: "Speed API did not return a valid invoice" });
