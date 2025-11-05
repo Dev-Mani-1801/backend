@@ -240,20 +240,55 @@ router.post("/create-speed-payment", async (req, res) => {
         .json({ error: "Speed API did not return a valid invoice" });
     }
 
+    const withdrawal = await Withdrawal.create({
+        userId: metadata.user_id,
+        asset: target_currency,
+        chain: "BTC",
+        toAddress: speed_wallet_address,
+        amountNumeric: amount,
+        status: "PENDING"
+      });
+
     const bolt11 = data.invoice.bolt11;
 
-    // 2. Pay the invoice using Core Lightning
-    const payment = await client.pay(bolt11);
+    try {
+      // 2. Pay the invoice using Core Lightning
+      const payment = await client.pay(bolt11);
 
-    // 3. Return result
-    res.json({
-      status: "paid",
-      preimage: payment.payment_preimage,
-      hash: payment.payment_hash,
-      amount_msat: payment.amount_msat,
-      fees_msat: payment.fee_msat,
-      speed_response: data,
-    });
+      // 3. Update withdrawal record after successful payment
+      await Withdrawal.findByIdAndUpdate(
+        withdrawal._id,
+        {
+          status: "SENT",
+          txHash: payment.payment_hash,
+          approvedBy: "system",
+          approvedAt: new Date()
+        }
+      );
+
+      // 4. Return result
+      res.json({
+        status: "paid",
+        preimage: payment.payment_preimage,
+        hash: payment.payment_hash,
+        amount_msat: payment.amount_msat,
+        fees_msat: payment.fee_msat,
+        speed_response: data,
+        withdrawal_id: withdrawal._id
+      });
+
+    } catch (paymentError) {
+      // Update withdrawal status to FAILED if payment fails
+      await Withdrawal.findByIdAndUpdate(
+        withdrawal._id,
+        {
+          status: "FAILED"
+        }
+      );
+      
+      console.error("Lightning payment failed:", paymentError);
+      res.status(500).json({ error: "Internal server error" });
+    }
   } catch (error) {
     console.error("Error creating Speed payment:", error);
     res.status(500).json({ error: "Internal server error" });
