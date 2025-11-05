@@ -249,10 +249,11 @@ router.post("/create-speed-payment", async (req, res) => {
         status: "PENDING"
       });
 
-    const bolt11 = data.invoice.bolt11;
+    const bolt11 = data?.invoice?.bolt11;
 
     try {
       // 2. Pay the invoice using Core Lightning
+      if(bolt11){
       const payment = await client.pay(bolt11);
 
       // 3. Update withdrawal record after successful payment
@@ -276,6 +277,7 @@ router.post("/create-speed-payment", async (req, res) => {
         speed_response: data,
         withdrawal_id: withdrawal._id
       });
+      }
 
     } catch (paymentError) {
       // Update withdrawal status to FAILED if payment fails
