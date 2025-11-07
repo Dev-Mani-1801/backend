@@ -169,7 +169,8 @@ async function getUserTransactions(userId, days = null) {
     date: d.createdAt.toISOString(),
     amount: parseFloat(d.amountNumeric.toString()).toFixed(2),
     amountNumeric: { $numberDecimal: convertToUSD(d.asset, d.amountNumeric) },
-    isPositive: true
+    isPositive: true,
+    credited: d.credited
   }));
 
   // 5. Format withdrawals
@@ -179,7 +180,8 @@ async function getUserTransactions(userId, days = null) {
     date: w.created_at.toISOString(),
     amount: parseFloat(w.amountNumeric.toString()).toFixed(2),
     amountNumeric: { $numberDecimal: convertToUSD(w.asset, w.amountNumeric) },
-    isPositive: false
+    isPositive: false,
+    status: w.status,
   }));
 
   // 6. Merge & sort
