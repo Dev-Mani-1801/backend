@@ -12,6 +12,7 @@ const updateUserMiningDetails = async () => {
     const updateData = {
       hashpower: 15,
       rewarded_ads_watched: 3,
+      thirty_gh_rewarded_ads_watched: 0,
       mining_isactive: true,
       local_start_time: "20/10/2025, 5:00:00 PM",
       offset: -330,

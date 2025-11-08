@@ -142,6 +142,7 @@ router.get("/:userId", async (req, res) => {
             hashpower: 0,
             mining_isactive: false,
             rewarded_ads_watched: 0,
+            thirty_gh_rewarded_ads_watched: 0,
             random_ads_watched: 0,
             start_time: 0,
             stop_time: 0,
@@ -200,6 +201,7 @@ router.post("/", async (req, res) => {
       hashpower, 
       mining_isactive, 
       rewarded_ads_watched, 
+      thirty_gh_rewarded_ads_watched,
       random_ads_watched, 
       start_time, 
       stop_time,
@@ -219,6 +221,7 @@ router.post("/", async (req, res) => {
     const updateData = {};
     if (typeof hashpower === "number") updateData.hashpower = hashpower;
     if (typeof rewarded_ads_watched === "number") updateData.rewarded_ads_watched = rewarded_ads_watched;
+    if (typeof thirty_gh_rewarded_ads_watched === "number") updateData.thirty_gh_rewarded_ads_watched = thirty_gh_rewarded_ads_watched;
     if (typeof random_ads_watched === "number") updateData.random_ads_watched = random_ads_watched;
     if (typeof mining_isactive === "boolean") updateData.mining_isactive = mining_isactive;
     if (typeof stop_time === "number") updateData.stop_time = stop_time;

@@ -22,6 +22,11 @@ const UserMiningSchema = new mongoose.Schema({
     required: true,
     min: 0
   },
+  thirty_gh_rewarded_ads_watched: {
+    type: Number,
+    required: false,
+    min: 0
+  },
   random_ads_watched: {
     type: Number,
     required: true,

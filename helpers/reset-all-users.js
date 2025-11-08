@@ -24,6 +24,7 @@ const resetAllUsersMiningData = async () => {
           hashpower: 0,
           mining_isactive: false,
           rewarded_ads_watched: 0,
+          thirty_gh_rewarded_ads_watched: 0,
           random_ads_watched: 0,
           start_time: null,
           stop_time: null,
