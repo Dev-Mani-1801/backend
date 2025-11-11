@@ -20,7 +20,7 @@ router.post("/", async (req, res) => {
 
     // Fetch user's mining details
     const miningDetails = await UserMiningDetail.findOne({ user: userId });
-    if (!miningDetails || !miningDetails.hashpower || !miningDetails.mining_isactive) {
+    if (!miningDetails || !miningDetails.hashpower) {
       return res.json({
         success: false,
         message: "Please activate mining before claiming reward",
