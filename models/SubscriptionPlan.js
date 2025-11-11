@@ -24,6 +24,8 @@ const subscriptionPlanSchema = new mongoose.Schema({
     type: Number, // in months
     required: true
   },
+  apple_identifier: {type: String, default: null, required: false},
+  google_identifier: {type: String, default: null, required: false},
   maintenance_cost: {
     type: Number,
     required: true
