@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 
 const balanceHistorySchema = new mongoose.Schema({
-  user: { type: String, ref: "users", required: true, unique: true},
+  user: { type: String, ref: "users", required: true, index: true},
   firebase_uid: {
     type: String,
     ref: 'users',
@@ -16,5 +16,8 @@ const balanceHistorySchema = new mongoose.Schema({
     LTC: { type: mongoose.Schema.Types.Decimal128, default: 0 },
   }
 }, { timestamps: true });
+
+// Create compound unique index on user + date to allow multiple entries per user
+balanceHistorySchema.index({ user: 1, date: 1 }, { unique: true });
 
 export default mongoose.model("BalanceHistory", balanceHistorySchema);

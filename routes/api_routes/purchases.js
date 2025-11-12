@@ -47,12 +47,16 @@ router.post('/:userId', async (req, res) => {
 
     // Get current user mining details with lock
     let userMining = await UserMiningDetail.findOne({ user: userId }).session(session);
-    const existingHashPower = userMining ? userMining.hashpower : 0;
+    const existingClaimedHashPower = userMining ? userMining.hashpower : 0;
+    const existingPurchasedHashPower = userMining ? (userMining.purchased_hashpower || 0) : 0;
+    const existingTotalHashPower = existingClaimedHashPower + existingPurchasedHashPower;
 
-    // Calculate updated hashpower
-    const updatedHashPower = existingHashPower + plan.hashrate;
+    // Calculate updated hashpower (add to purchased_hashpower)
+    const updatedPurchasedHashPower = existingPurchasedHashPower + plan.hashrate;
+    const updatedTotalHashPower = existingClaimedHashPower + updatedPurchasedHashPower;
 
-    console.log(`Hashpower update: ${existingHashPower} -> ${updatedHashPower}`);
+    console.log(`Purchased hashpower update: ${existingPurchasedHashPower} -> ${updatedPurchasedHashPower}`);
+    console.log(`Total hashpower update: ${existingTotalHashPower} -> ${updatedTotalHashPower}`);
 
     // Create purchase record
     const purchase = new Purchase({
@@ -64,8 +68,8 @@ router.post('/:userId', async (req, res) => {
       currency,
       purchase_date: purchase_date || new Date(),
       status: 'completed',
-      existing_hashpower: existingHashPower,
-      updated_hashpower: updatedHashPower,
+      existing_hashpower: existingTotalHashPower,
+      updated_hashpower: updatedTotalHashPower,
       mining_power_added: false
     });
 
@@ -77,7 +81,8 @@ router.post('/:userId', async (req, res) => {
       // Create new mining details if not exists
       userMining = new UserMiningDetail({
         user: userId,
-        hashpower: plan.hashrate,
+        hashpower: 0,                          // Claimed hashpower starts at 0
+        purchased_hashpower: plan.hashrate,    // Add purchased hashpower
         rewarded_ads_watched: 0,
         thirty_gh_rewarded_ads_watched: 0,
         random_ads_watched: 0,
@@ -90,9 +95,10 @@ router.post('/:userId', async (req, res) => {
       });
       console.log('Created new mining details for user:', userId);
     } else {
-      // Add hashrate to existing mining power
-      userMining.hashpower = updatedHashPower;
-      console.log(`Updated mining power for user ${userId}: ${userMining.hashpower}`);
+      // Add hashrate to purchased_hashpower (persists across midnight)
+      userMining.purchased_hashpower = updatedPurchasedHashPower;
+      console.log(`Updated purchased mining power for user ${userId}: ${userMining.purchased_hashpower}`);
+      console.log(`Total mining power for user ${userId}: ${userMining.hashpower + userMining.purchased_hashpower}`);
     }
 
     await userMining.save({ session });
@@ -116,8 +122,11 @@ router.post('/:userId', async (req, res) => {
         price_paid: purchase.price_paid,
         currency: purchase.currency,
         purchase_date: purchase.purchase_date,
-        existing_hashpower: existingHashPower,
-        updated_hashpower: updatedHashPower
+        existing_total_hashpower: existingTotalHashPower,
+        existing_claimed_hashpower: existingClaimedHashPower,
+        existing_purchased_hashpower: existingPurchasedHashPower,
+        updated_purchased_hashpower: updatedPurchasedHashPower,
+        updated_total_hashpower: updatedTotalHashPower
       }
     });
 

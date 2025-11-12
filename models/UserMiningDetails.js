@@ -17,6 +17,11 @@ const UserMiningSchema = new mongoose.Schema({
     required: true,
     min: 0
   },
+  purchased_hashpower: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
   rewarded_ads_watched: {
     type: Number,
     required: true,

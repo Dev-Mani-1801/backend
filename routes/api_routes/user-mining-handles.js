@@ -32,13 +32,20 @@ router.get("/:userId", async (req, res) => {
       return res.status(404).json({ success: false, message: "Mining details not found.", daily_reward_claimed: false });
     }
 
-    const { hashpower, offset, local_start_time } = mining_details;
+    const { hashpower, purchased_hashpower, offset, local_start_time } = mining_details;
+    const claimed_hashpower = hashpower || 0;
+    const purchased_hp = purchased_hashpower || 0;
+    const total_hashpower = claimed_hashpower + purchased_hp;
     const userOffsetMin = Number(offset) || 0;
 
-    console.log("UserID:", userId, "Hashpower:", hashpower, "LocalStartTime:", local_start_time);
+    console.log("UserID:", userId);
+    console.log("Claimed Hashpower:", claimed_hashpower);
+    console.log("Purchased Hashpower:", purchased_hp);
+    console.log("Total Hashpower:", total_hashpower);
+    console.log("LocalStartTime:", local_start_time);
     console.log("Current Local Time:", local_time);
 
-    if (!hashpower || hashpower <= 0 || !local_start_time) {
+    if (!total_hashpower || total_hashpower <= 0 || !local_start_time) {
       return res.json({
         success: true,
         mining_details,
@@ -92,14 +99,14 @@ router.get("/:userId", async (req, res) => {
 
     if (sameDay) {
       const miningDurationSec = Math.min(elapsedSec, MAX_MINING_DURATION_MS / 1000);
-      calculated_btc = hashpower * BTC_PER_HASHPOWER_PER_SEC * miningDurationSec;
+      calculated_btc = total_hashpower * BTC_PER_HASHPOWER_PER_SEC * miningDurationSec;
       console.log("Total Mined BTC:", calculated_btc);
     } else {
       // Exceeded mining duration → reset mining
-      const btcToTransfer = hashpower * BTC_PER_HASHPOWER_PER_SEC * 24 * 3600;
+      const btcToTransfer = total_hashpower * BTC_PER_HASHPOWER_PER_SEC * 24 * 3600;
 
       const miningDurationSec = Math.min(elapsedSec, MAX_MINING_DURATION_MS / 1000);
-      calculated_btc = hashpower * BTC_PER_HASHPOWER_PER_SEC * miningDurationSec;
+      calculated_btc = total_hashpower * BTC_PER_HASHPOWER_PER_SEC * miningDurationSec;
 
       console.log("UserID:", userId);
       console.log("Mining Details:", mining_details);
@@ -120,7 +127,7 @@ router.get("/:userId", async (req, res) => {
             user: userId,
             date: yesterdayLocal,
             balances: {
-              BTC: calculated_btc,
+              BTC: btcToTransfer,
               BNB: user_balance?.BNB ?? 0,
               USDT: user_balance?.USDT ?? 0,
               USDC: user_balance?.USDC ?? 0,
@@ -135,11 +142,13 @@ router.get("/:userId", async (req, res) => {
 
       await DailyFreeMiner.deleteMany({ userId });
 
+      // Reset only claimed hashpower at midnight, preserve purchased hashpower
       await UserMiningDetail.findOneAndUpdate(
         { user: userId },
         {
           $set: {
-            hashpower: 0,
+            hashpower: 0,  // Reset claimed hashpower from ads/rewards
+            // purchased_hashpower remains unchanged - persists across midnight
             mining_isactive: false,
             rewarded_ads_watched: 0,
             thirty_gh_rewarded_ads_watched: 0,
@@ -173,10 +182,22 @@ router.get("/:userId", async (req, res) => {
       DailyRewardClaimed = true;
     }
 
+    // Fetch user's balance to get BTC_DEPOSIT (previous days' earnings)
+    const user_balance = await Balance.findOne({ user: userId });
+    const btc_deposit = user_balance?.BTC_DEPOSIT ? parseFloat(user_balance.BTC_DEPOSIT.toString()) : 0;
+
+    // Calculate total BTC = today's calculated BTC + all previous days' earnings
+    const total_btc = parseFloat(calculated_btc.toFixed(16)) + btc_deposit;
+
     return res.json({
       success: true,
       mining_details,
       calculated_btc: parseFloat(calculated_btc.toFixed(16)),
+      btc_deposit: parseFloat(btc_deposit.toFixed(16)),
+      total_btc: parseFloat(total_btc.toFixed(16)),
+      claimed_hashpower: claimed_hashpower,
+      purchased_hashpower: purchased_hp,
+      total_hashpower: total_hashpower,
       message: "Mining details fetched successfully (local time based).",
       time_remaining: time_remaining_secs ?? 0,
       daily_reward_claimed: DailyRewardClaimed
@@ -219,7 +240,26 @@ router.post("/", async (req, res) => {
     let existingRecord = await UserMiningDetail.findOne({ user: user_id });
 
     const updateData = {};
-    if (typeof hashpower === "number") updateData.hashpower = hashpower;
+
+    // CRITICAL: Handle hashpower updates correctly to preserve purchased_hashpower
+    if (typeof hashpower === "number") {
+      // Frontend sends total hashpower (claimed + purchased)
+      // We need to extract only the claimed portion
+      const current_purchased = existingRecord?.purchased_hashpower || 0;
+      const current_claimed = existingRecord?.hashpower || 0;
+      const current_total = current_claimed + current_purchased;
+
+      // Calculate the delta (how much was added)
+      const delta = hashpower - current_total;
+
+      // Add delta to claimed hashpower only
+      const new_claimed = Math.max(0, current_claimed + delta);
+
+      console.log(`Hashpower update: total sent=${hashpower}, current_total=${current_total}, delta=${delta}`);
+      console.log(`Claimed: ${current_claimed} -> ${new_claimed}, Purchased: ${current_purchased} (unchanged)`);
+
+      updateData.hashpower = new_claimed;
+    }
     if (typeof rewarded_ads_watched === "number") updateData.rewarded_ads_watched = rewarded_ads_watched;
     if (typeof thirty_gh_rewarded_ads_watched === "number") updateData.thirty_gh_rewarded_ads_watched = thirty_gh_rewarded_ads_watched;
     if (typeof random_ads_watched === "number") updateData.random_ads_watched = random_ads_watched;
