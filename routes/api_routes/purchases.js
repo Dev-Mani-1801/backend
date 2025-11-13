@@ -78,6 +78,8 @@ router.post('/:userId', async (req, res) => {
       userMining = new UserMiningDetail({
         user: userId,
         hashpower: plan.hashrate,
+        claimedHashpower: 0,
+        purchasedHashpower: plan.hashrate, // Set purchased hashpower
         rewarded_ads_watched: 0,
         thirty_gh_rewarded_ads_watched: 0,
         random_ads_watched: 0,
@@ -91,8 +93,13 @@ router.post('/:userId', async (req, res) => {
       console.log('Created new mining details for user:', userId);
     } else {
       // Add hashrate to existing mining power
-      userMining.hashpower = updatedHashPower;
-      console.log(`Updated mining power for user ${userId}: ${userMining.hashpower}`);
+      const existingClaimed = userMining.claimedHashpower || 0;
+      const existingPurchased = userMining.purchasedHashpower || 0;
+
+      userMining.purchasedHashpower = existingPurchased + plan.hashrate; // Add to purchased
+      userMining.hashpower = updatedHashPower; // Total = claimed + purchased
+
+      console.log(`Updated mining power for user ${userId}: claimed=${existingClaimed}, purchased=${userMining.purchasedHashpower}, total=${userMining.hashpower}`);
     }
 
     await userMining.save({ session });

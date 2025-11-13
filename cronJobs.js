@@ -6,7 +6,6 @@ import DailyRewardClaim from "./models/DailyRewardClaim.js";
 import DailyRewardClaimHistory from "./models/DailyRewardClaimHistory.js";
 import UserMiningDetail from "./models/UserMiningDetails.js";
 import DailyFreeMiner from "./models/DailyMiner.js";
-import Userplan from "./models/UserPlans.js";
 
 console.log("Cron Job Started!!");
 
@@ -31,9 +30,8 @@ cron.schedule("0 0 * * *", async () => {
       try {
         const userId = miningDetail.user;
 
-        // Calculate purchased hashpower from active paid subscriptions
-        const userPlans = await Userplan.find({ user: userId, paid: true });
-        const purchasedHashpower = userPlans.reduce((acc, plan) => acc + (plan.hashrate || 0), 0);
+        // Use existing purchasedHashpower from database (set by purchase flow)
+        const purchasedHashpower = miningDetail.purchasedHashpower || 0;
 
         // Reset only claimed hashpower, keep purchased
         await UserMiningDetail.findOneAndUpdate(
@@ -41,7 +39,6 @@ cron.schedule("0 0 * * *", async () => {
           {
             $set: {
               claimedHashpower: 0, // Reset daily claimed power
-              purchasedHashpower: purchasedHashpower, // Update with current subscriptions
               hashpower: purchasedHashpower, // Total = purchased only (claimed reset to 0)
               mining_isactive: false,
               rewarded_ads_watched: 0,
