@@ -34,15 +34,23 @@ router.get("/:userId", async (req, res) => {
 
     // Migration logic: if claimedHashpower and purchasedHashpower are not set, initialize them
     // Assume all existing hashpower is claimed (since we don't have historical purchase data)
-    if (mining_details.claimedHashpower === undefined && mining_details.purchasedHashpower === undefined) {
+    if (mining_details.claimedHashpower === undefined || mining_details.purchasedHashpower === undefined) {
       const existingHashpower = mining_details.hashpower || 0;
-      mining_details.claimedHashpower = existingHashpower; // Treat existing as claimed
-      mining_details.purchasedHashpower = 0; // No purchases yet
-      mining_details.hashpower = existingHashpower;
+      const currentPurchased = mining_details.purchasedHashpower || 0;
+      const currentClaimed = mining_details.claimedHashpower || 0;
+      
+      // Only set if undefined - don't overwrite existing values
+      if (mining_details.claimedHashpower === undefined) {
+        mining_details.claimedHashpower = Math.max(0, existingHashpower - currentPurchased);
+      }
+      if (mining_details.purchasedHashpower === undefined) {
+        mining_details.purchasedHashpower = 0;
+      }
+      
+      mining_details.hashpower = (mining_details.claimedHashpower || 0) + (mining_details.purchasedHashpower || 0);
       await mining_details.save();
-      console.log(`Migrated user ${userId}: claimed=${existingHashpower}, purchased=0`);
+      console.log(`Migrated user ${userId}: claimed=${mining_details.claimedHashpower}, purchased=${mining_details.purchasedHashpower}`);
     }
-
     // Use existing purchasedHashpower and claimedHashpower from database
     // These are set by the purchase flow and updated by POST endpoint
 
