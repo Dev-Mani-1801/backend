@@ -5,6 +5,7 @@ import BalanceHistory from "../../models/BalanceHistory.js";
 import Balance from "../../models/Balance.js";
 import DailyRewardClaim from '../../models/DailyRewardClaim.js';
 import DailyFreeMiner from "../../models/DailyMiner.js";
+import Userplan from "../../models/UserPlans.js";
 
 const router = express.Router();
 
@@ -30,6 +31,27 @@ router.get("/:userId", async (req, res) => {
     let mining_details = await UserMiningDetail.findOne({ user: userId });
     if (!mining_details) {
       return res.status(404).json({ success: false, message: "Mining details not found.", daily_reward_claimed: false });
+    }
+
+    // Calculate purchased hashpower from active subscriptions
+    const userPlans = await Userplan.find({ user: userId, paid: true });
+    const purchasedHashpower = userPlans.reduce((acc, plan) => acc + (plan.hashrate || 0), 0);
+
+    // Migration logic: if claimedHashpower and purchasedHashpower are not set, initialize them
+    if (mining_details.claimedHashpower === undefined && mining_details.purchasedHashpower === undefined) {
+      // Old data: split existing hashpower between claimed and purchased
+      const existingHashpower = mining_details.hashpower || 0;
+      mining_details.purchasedHashpower = purchasedHashpower;
+      mining_details.claimedHashpower = Math.max(0, existingHashpower - purchasedHashpower);
+      mining_details.hashpower = mining_details.claimedHashpower + mining_details.purchasedHashpower;
+      await mining_details.save();
+    } else {
+      // Update purchasedHashpower if it changed
+      if (mining_details.purchasedHashpower !== purchasedHashpower) {
+        mining_details.purchasedHashpower = purchasedHashpower;
+        mining_details.hashpower = (mining_details.claimedHashpower || 0) + purchasedHashpower;
+        await mining_details.save();
+      }
     }
 
     const { hashpower, offset, local_start_time } = mining_details;
@@ -135,11 +157,13 @@ router.get("/:userId", async (req, res) => {
 
       await DailyFreeMiner.deleteMany({ userId });
 
+      // Only reset claimed hashpower, keep purchased hashpower
       await UserMiningDetail.findOneAndUpdate(
         { user: userId },
         {
           $set: {
-            hashpower: 0,
+            claimedHashpower: 0, // Reset daily claimed power
+            hashpower: mining_details.purchasedHashpower || 0, // Keep only purchased hashpower
             mining_isactive: false,
             rewarded_ads_watched: 0,
             thirty_gh_rewarded_ads_watched: 0,
@@ -218,8 +242,28 @@ router.post("/", async (req, res) => {
 
     let existingRecord = await UserMiningDetail.findOne({ user: user_id });
 
+    // Calculate purchased hashpower from active subscriptions
+    const userPlans = await Userplan.find({ user: user_id, paid: true });
+    const purchasedHashpower = userPlans.reduce((acc, plan) => acc + (plan.hashrate || 0), 0);
+
     const updateData = {};
-    if (typeof hashpower === "number") updateData.hashpower = hashpower;
+
+    // Handle hashpower update: separate claimed from purchased
+    if (typeof hashpower === "number") {
+      // hashpower sent from frontend is the TOTAL (claimed + purchased)
+      // We need to extract the claimed portion
+      const currentPurchased = existingRecord?.purchasedHashpower || purchasedHashpower;
+      const claimedPortion = Math.max(0, hashpower - currentPurchased);
+
+      updateData.claimedHashpower = claimedPortion;
+      updateData.purchasedHashpower = currentPurchased;
+      updateData.hashpower = hashpower; // Total remains as sent
+    } else if (existingRecord) {
+      // If hashpower not provided, ensure purchased hashpower is up to date
+      updateData.purchasedHashpower = purchasedHashpower;
+      updateData.hashpower = (existingRecord.claimedHashpower || 0) + purchasedHashpower;
+    }
+
     if (typeof rewarded_ads_watched === "number") updateData.rewarded_ads_watched = rewarded_ads_watched;
     if (typeof thirty_gh_rewarded_ads_watched === "number") updateData.thirty_gh_rewarded_ads_watched = thirty_gh_rewarded_ads_watched;
     if (typeof random_ads_watched === "number") updateData.random_ads_watched = random_ads_watched;
