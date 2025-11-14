@@ -8,9 +8,9 @@ const router = express.Router();
 
 const rpcPath = "/home/pi/.lightning/bitcoin";
 
-if (!fs.existsSync(rpcPath)) {
-  throw new Error("lightning-rpc not found. Check CLN is running and path is correct.");
-}
+// if (!fs.existsSync(rpcPath)) {
+//   throw new Error("lightning-rpc not found. Check CLN is running and path is correct.");
+// }
 
 const client = new Client(rpcPath);
 
