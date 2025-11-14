@@ -3,6 +3,7 @@ import Withdrawal from "../../models/Withdrawal.js";
 import fetch from "node-fetch";
 import Client from "lightning-client";
 import fs from "fs";
+import request from "request";
 
 const router = express.Router();
 const SPEED_API_KEY = 'sk_test_mfoc67r7bbfxZTXAmfoproayetYNmFIrmfoproayCEEsSoxx';
@@ -118,11 +119,34 @@ router.patch("/:id/approve", async (req, res) => {
     withdrawal.approvedBy = req.user?.id || "admin";
     withdrawal.approvedAt = new Date();
     await withdrawal.save();
+    var resp = {}
 
     // TODO: Call external API (payment gateway / blockchain service)
     // Example: await sendFunds(withdrawal);
 
-    res.json({ message: "Withdrawal approved", withdrawal });
+    var options = {
+      'method': 'POST',
+      'url': 'https://api.tryspeed.com/send',
+      'headers': {
+        'Content-Type': 'application/json',
+        'Authorization': 'Basic c2tfdGVzdF9tZm9jNjdyN2JiZnhaVFhBbWZvcHJvYXlldFlObUZJcm1mb3Byb2F5Q0VFc1NveHg6'
+      },
+      body: JSON.stringify({
+        "amount": withdrawal.amountNumeric,
+        "currency": withdrawal.asset,
+        "withdraw_method": "lightning",
+        "withdraw_request": withdrawal.toAddress,
+      })
+
+    };
+    request(options, function (error, response) {
+      if (error) throw new Error(error);
+      console.log(response.body);
+      resp = JSON.parse(response.body);
+    });
+
+
+    res.json({ message: "Withdrawal approved", withdrawal, res: resp });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
