@@ -44,6 +44,10 @@ const withdrawalSchema = new mongoose.Schema({
   },
   approvedBy: String,
   approvedAt: Date,
+  action: {
+    type: mongoose.Schema.Types.Mixed,
+    default: null
+  },
 }, { timestamps: { createdAt: "created_at", updatedAt: true } });
 
 export default mongoose.model("Withdrawal", withdrawalSchema);
