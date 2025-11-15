@@ -20,7 +20,162 @@ const isSameLocalDay = (date1, date2) =>
   date1.getMonth() === date2.getMonth() &&
   date1.getDate() === date2.getDate();
 
-// GET user mining details by userId
+  
+const incrementDailyVideoCount = async (req, res) => {
+  try {
+    const { user } = req.body;
+
+    let miningDetails = await UserMiningDetail.findOne({ user });
+
+    if (!miningDetails) {
+      return res.status(404).json({
+        success: false,
+        message: 'Mining details not found'
+      });
+    }
+
+    // Check if we need to reset counter for new day
+    const now = new Date();
+    const lastReset = new Date(miningDetails.dailyVideoRequirement.lastResetDate);
+
+    if (now.toDateString() !== lastReset.toDateString()) {
+      miningDetails.resetDailyVideoCounter();
+    }
+
+    // Increment video count
+    miningDetails.incrementDailyVideoCount();
+
+    // Reset consecutive failures if they meet requirement
+    if (miningDetails.metDailyRequirement()) {
+      miningDetails.dailyVideoRequirement.consecutiveFailures = 0;
+    }
+
+    await miningDetails.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Video count incremented',
+      daily_progress: miningDetails.getDailyProgress()
+    });
+  } catch (error) {
+    console.error('Error incrementing video count:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error incrementing video count',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * @desc    Increment daily ads watched for loss offset
+ * @route   POST /api/user_mining/increment-loss-ad
+ * @access  Public
+ */
+const incrementLossOffsetAd = async (req, res) => {
+  try {
+    const { user } = req.body;
+
+    let miningDetails = await UserMiningDetail.findOne({ user });
+
+    if (!miningDetails) {
+      return res.status(404).json({
+        success: false,
+        message: 'Mining details not found'
+      });
+    }
+
+    // Increment ads watched
+    miningDetails.incrementLossOffsetAds();
+    const lossReduced = miningDetails.reduceCumulativeLoss();
+    await miningDetails.save();
+
+    res.status(200).json({
+      success: true,
+      message: lossReduced 
+        ? `Loss offset ad count incremented. Loss reduced by ${miningDetails.lossTracking.daily_loss_offset}%!`
+        : 'Loss offset ad count incremented',
+      daily_ads_watched: miningDetails.lossTracking.daily_ads_watched,
+      cumulative_loss: miningDetails.lossTracking.cumulative_loss,
+      loss_reduced: lossReduced 
+    });
+  } catch (error) {
+    console.error('Error incrementing loss offset ads:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error incrementing ad count',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * @desc    Get daily video progress
+ * @route   GET /api/user_mining/daily-progress/:user
+ * @access  Public
+ */
+const getDailyProgress = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    // Add database connection if needed
+    await mongoose.connect(MONGO_URI);
+
+    // Fix: Use UserMiningDetail (singular) and query by { user: userId }
+    let miningDetails = await UserMiningDetail.findOne({ user: userId });
+
+    if (!miningDetails) {
+      return res.status(404).json({
+        success: false,
+        message: 'Mining details not found'
+      });
+    }
+
+    // Check if we need to reset counter for new day
+    const now = new Date();
+    const lastReset = miningDetails.dailyVideoRequirement?.lastResetDate 
+      ? new Date(miningDetails.dailyVideoRequirement.lastResetDate)
+      : new Date();
+
+    if (now.toDateString() !== lastReset.toDateString()) {
+      // Reset if methods exist, otherwise manually reset
+      if (typeof miningDetails.resetDailyVideoCounter === 'function') {
+        miningDetails.resetDailyVideoCounter();
+      } else {
+        miningDetails.dailyVideoRequirement.videosWatched = 0;
+        miningDetails.dailyVideoRequirement.lastResetDate = new Date();
+        miningDetails.lossTracking.daily_ads_watched = 0;
+      }
+      await miningDetails.save();
+    }
+
+    // Get progress
+    const dailyProgress = typeof miningDetails.getDailyProgress === 'function'
+      ? miningDetails.getDailyProgress()
+      : {
+          videosWatched: miningDetails.dailyVideoRequirement?.videosWatched || 0,
+          required: miningDetails.dailyVideoRequirement?.required || 5,
+          met: (miningDetails.dailyVideoRequirement?.videosWatched || 0) >= 
+               (miningDetails.dailyVideoRequirement?.required || 5),
+          consecutiveFailures: miningDetails.dailyVideoRequirement?.consecutiveFailures || 0,
+          lastResetDate: miningDetails.dailyVideoRequirement?.lastResetDate
+        };
+
+    res.status(200).json({
+      success: true,
+      daily_progress: dailyProgress
+    });
+  } catch (error) {
+    console.error('Error getting daily progress:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error retrieving daily progress',
+      error: error.message
+    });
+  }
+};
+
+// GET user mining details by user
 router.get("/:userId", async (req, res) => {
   try {
     const { userId } = req.params;
@@ -53,17 +208,34 @@ router.get("/:userId", async (req, res) => {
     }
     // Use existing purchasedHashpower and claimedHashpower from database
     // These are set by the purchase flow and updated by POST endpoint
+        // Check and apply daily loss
+if (mining_details.purchasedHashpower > 0) {
+  if (typeof mining_details.checkAndApplyDailyLoss === 'function') {
+    mining_details.checkAndApplyDailyLoss();
+    await mining_details.save();
+  }
+}
+
+// Use effective hashpower for mining calculations
+const effectiveHashpower = typeof mining_details.getEffectiveHashpower === 'function'
+  ? mining_details.getEffectiveHashpower()
+  : mining_details.hashpower;
+
 
     const { hashpower, offset, local_start_time } = mining_details;
     const userOffsetMin = Number(offset) || 0;
 
     console.log("UserID:", userId, "Hashpower:", hashpower, "LocalStartTime:", local_start_time);
     console.log("Current Local Time:", local_time);
+    
 
     if (!hashpower || hashpower <= 0 || !local_start_time) {
       return res.json({
         success: true,
-        mining_details,
+        mining_details: {
+          ...mining_details.toObject(),
+          effective_hashpower: effectiveHashpower
+        },
         calculated_btc: 0,
         time_remaining: 0,
         message: "Mining not active or invalid hashpower.",
@@ -114,14 +286,14 @@ router.get("/:userId", async (req, res) => {
 
     if (sameDay) {
       const miningDurationSec = Math.min(elapsedSec, MAX_MINING_DURATION_MS / 1000);
-      calculated_btc = hashpower * BTC_PER_HASHPOWER_PER_SEC * miningDurationSec;
+      calculated_btc = effectiveHashpower * BTC_PER_HASHPOWER_PER_SEC * miningDurationSec;
       console.log("Total Mined BTC:", calculated_btc);
     } else {
       // Exceeded mining duration → reset mining
-      const btcToTransfer = hashpower * BTC_PER_HASHPOWER_PER_SEC * 24 * 3600;
+      const btcToTransfer = effectiveHashpower * BTC_PER_HASHPOWER_PER_SEC * 24 * 3600;
 
       const miningDurationSec = Math.min(elapsedSec, MAX_MINING_DURATION_MS / 1000);
-      calculated_btc = hashpower * BTC_PER_HASHPOWER_PER_SEC * miningDurationSec;
+      calculated_btc = effectiveHashpower * BTC_PER_HASHPOWER_PER_SEC * miningDurationSec;
 
       console.log("UserID:", userId);
       console.log("Mining Details:", mining_details);
@@ -199,7 +371,10 @@ router.get("/:userId", async (req, res) => {
 
     return res.json({
       success: true,
-      mining_details,
+      mining_details: {
+        ...mining_details.toObject(),
+        effective_hashpower: effectiveHashpower,
+      },
       calculated_btc: parseFloat(calculated_btc.toFixed(16)),
       message: "Mining details fetched successfully (local time based).",
       time_remaining: time_remaining_secs ?? 0,
@@ -237,7 +412,7 @@ router.post("/", async (req, res) => {
     await mongoose.connect(MONGO_URI);
 
     if (!user_id) {
-      return res.status(400).json({ success: false, message: "user_id is required" });
+      return res.status(400).json({ success: false, message: "user id is required" });
     }
 
     let existingRecord = await UserMiningDetail.findOne({ user: user_id });
@@ -314,5 +489,14 @@ router.post("/", async (req, res) => {
     res.status(500).json({ success: false, error: err.message });
   }
 });
+
+// Increment daily video count (called when user watches ad)
+router.post('/increment-video', incrementDailyVideoCount);
+
+// Increment loss offset ad count (called when user watches rewarded ad)
+router.post('/increment-loss-ad', incrementLossOffsetAd);
+
+// Get daily video progress
+router.get('/daily-progress/:userId', getDailyProgress);
 
 export default router;
