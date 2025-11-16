@@ -41,14 +41,14 @@
                     </tr>
                     </thead>
                     <tbody id="subscriptionsTbody">
-                    <% UserSubs.forEach((sub, index) => { %>
+                        <% UserSubs.slice().reverse().forEach(function(sub, index) { %>
                         <tr data-id="<%= sub.id %>">
                             <td><%= (page - 1) * limit + index + 1 %></td>
-                            <td><%= sub.user._id %></td>
-                            <td><%= sub.user.email %></td>
+                            <td><%= sub.user && sub.user._id ? sub.user._id : '-' %></td>
+                            <td><%= sub.user && sub.user.email ? sub.user.email : '-' %></td>
                             <td><%= sub.crypto || '-' %></td>
                             <td><%= sub.chain || '-' %></td>
-                            <td>$<%= sub.amount ? sub.amount.toString() : '0' %></td>
+                            <td>$<%= sub.amount ? sub.amount.toString() : '-' %></td>
                             <td><%= sub.amount_crypto ? sub.amount_crypto.toString() : '0' %></td>
                             <td><%= sub.paid ? 'Yes' : 'No' %></td>
                             <td><%= sub.plan ? sub.plan.name : '-' %></td>
