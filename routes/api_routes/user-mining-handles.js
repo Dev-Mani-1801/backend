@@ -209,6 +209,7 @@ router.get("/:userId", async (req, res) => {
     
     // Migration logic: if lossTracking is not set, initialize it
     if (!mining_details.lossTracking || mining_details.lossTracking.cumulative_loss === undefined) {
+      console.log(`⚠️ User ${userId} missing lossTracking - initializing...`);
       mining_details.lossTracking = {
         daily_ads_watched: 0,
         cumulative_loss: 0,
@@ -216,8 +217,12 @@ router.get("/:userId", async (req, res) => {
         daily_ads_required: 10,
         last_check_date: new Date()
       };
-      await mining_details.save();
-      console.log(`Migrated lossTracking for user ${userId}`);
+      try {
+        await mining_details.save();
+        console.log(`✅ Migrated lossTracking for user ${userId}`);
+      } catch (error) {
+        console.error(`❌ Failed to save lossTracking for user ${userId}:`, error);
+      }
     }
     
 
