@@ -206,15 +206,27 @@ router.get("/:userId", async (req, res) => {
       await mining_details.save();
       console.log(`Migrated user ${userId}: claimed=${mining_details.claimedHashpower}, purchased=${mining_details.purchasedHashpower}`);
     }
-    // Use existing purchasedHashpower and claimedHashpower from database
-    // These are set by the purchase flow and updated by POST endpoint
-        // Check and apply daily loss
-if (mining_details.purchasedHashpower > 0) {
-  if (typeof mining_details.checkAndApplyDailyLoss === 'function') {
-    mining_details.checkAndApplyDailyLoss();
-    await mining_details.save();
-  }
-}
+    
+    // Migration logic: if lossTracking is not set, initialize it
+    if (!mining_details.lossTracking || mining_details.lossTracking.cumulative_loss === undefined) {
+      mining_details.lossTracking = {
+        daily_ads_watched: 0,
+        cumulative_loss: 0,
+        daily_loss_offset: 3.0,
+        daily_ads_required: 10,
+        last_check_date: new Date()
+      };
+      await mining_details.save();
+      console.log(`Migrated lossTracking for user ${userId}`);
+    }
+    
+
+    if (mining_details.purchasedHashpower > 0) {
+      if (typeof mining_details.checkAndApplyDailyLoss === 'function') {
+        mining_details.checkAndApplyDailyLoss();
+        await mining_details.save();
+      }
+    }
 
 // Use effective hashpower for mining calculations
 const effectiveHashpower = typeof mining_details.getEffectiveHashpower === 'function'
