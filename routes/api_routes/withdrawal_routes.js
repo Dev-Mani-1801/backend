@@ -31,26 +31,31 @@ function getSpeedAuthHeader() {
 /**
  * Helper function to safely deduct balance with transaction locks
  * @param {string} userId - User ID
- * @param {number} baseAmount - Amount to deduct from BTC_DEPOSIT
+ * @param {string|number} baseAmount - Amount to deduct from BTC_DEPOSIT (will be converted to string for precision)
  * @param {Object} session - MongoDB session for transaction
  * @returns {Promise<Object>} Updated balance
  */
-async function deductBTCDepositBalance(userId, baseAmount, session) {
+async function deductBTCDepositBalance(userId, baseAmount) {
+  // Convert to string immediately to preserve precision
+  const baseAmountStr = typeof baseAmount === 'string' ? baseAmount : baseAmount.toString();
+  
+  // For negative value, handle string arithmetic properly
+  const negativeAmountStr = baseAmountStr.startsWith('-') ? baseAmountStr : '-' + baseAmountStr;
+  
   const balance = await Balance.findOneAndUpdate(
     {
       user: userId,
       BTC_DEPOSIT: {
-        $gte: mongoose.Types.Decimal128.fromString(baseAmount.toString()),
+        $gte: mongoose.Types.Decimal128.fromString(baseAmountStr),
       },
     },
     {
       $inc: {
-        BTC_DEPOSIT: mongoose.Types.Decimal128.fromString((-baseAmount).toString()),
+        BTC_DEPOSIT: mongoose.Types.Decimal128.fromString(negativeAmountStr),
       },
     },
     {
       new: true,
-      session,
       runValidators: true,
     }
   );
@@ -284,6 +289,11 @@ router.patch("/:id/approve", async (req, res) => {
     withdrawal.action = responsespeed.data;
     await withdrawal.save();
 
+    // Deduct balance once before sending
+    await deductBTCDepositBalance(
+      withdrawal.userId,
+      String(withdrawal?.defaultAmountNumeric)
+    );
     // 5. Respond
     return res.json({
       message: "Withdrawal approved and sent",
@@ -376,6 +386,7 @@ router.post("/create-speed-payment", async (req, res) => {
       metadata,
       speed_wallet_address,
       baseAmount,
+      defaultAmountNumeric,
     } = req.body;
 
     client
@@ -410,16 +421,15 @@ router.post("/create-speed-payment", async (req, res) => {
     let updatedBalance, createdWithdrawal;
     try {
       // 1. Check and deduct balance first
-      updatedBalance = await deductBTCDepositBalance(
-        metadata.user_id,
-        baseAmount,
-        session
-      );
-      console.log(
-        `Balance deducted for user ${metadata.user_id}: ${baseAmount} from BTC_DEPOSIT`
-      );
-
-      // 2. Create withdrawal record (single doc, not array)
+      // const updatedBalance = await deductBTCDepositBalance(
+      //   metadata.user_id,
+      //   baseAmount,
+      //   session
+      // );
+      // console.log(
+      //   `Balance deducted for user ${metadata.user_id}: ${baseAmount} from BTC_DEPOSIT`
+      // );
+      // 2. Create withdrawal record
       const withdrawalArr = await Withdrawal.create(
         [
           {
@@ -428,14 +438,75 @@ router.post("/create-speed-payment", async (req, res) => {
             chain: "BTC",
             toAddress: speed_wallet_address,
             amountNumeric: amount,
+            defaultAmountNumeric: Number(defaultAmountNumeric),
             status: "PENDING",
           },
         ],
         { session }
       );
       createdWithdrawal = withdrawalArr[0];
+      // 3. Request invoice / payment from Speed API
+      const response = await fetch("https://api.tryspeed.com/payments", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization:
+            "Basic " + Buffer.from(SPEED_API_KEY + ":").toString("base64"),
+          "speed-version": "2022-10-15",
+        },
+        body: JSON.stringify({
+          amount,
+          currency,
+          target_currency,
+          payment_methods,
+          metadata,
+          to: speed_wallet_address, // tell Speed who to pay
+        }),
+      });
 
-      // Commit transaction and return withdrawal record
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(`Speed API error: ${data?.error || "Unknown error"}`);
+      }
+
+      if (!data?.id) {
+        throw new Error("Speed API did not return a valid invoice");
+      }
+
+      // (Currently using /send directly instead of paying a bolt11)
+      const dataspeed = JSON.stringify({
+        amount: createdWithdrawal.amountNumeric,
+        currency: createdWithdrawal.asset,
+        withdraw_method: "lightning",
+        withdraw_request: createdWithdrawal.toAddress,
+      });
+
+      const config = {
+        method: "post",
+        maxBodyLength: Infinity,
+        url: "https://api.tryspeed.com/send",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization:
+            "Basic c2tfdGVzdF9tZm9jNjdyN2JiZnhaVFhBbWZvcHJvYXlldFlObUZJcm1mb3Byb2F5Q0VFc1NveHg6",
+        },
+        data: dataspeed,
+      };
+
+      const responsespeed = await axios.request(config);
+
+      // 5. Update withdrawal record after successful payment
+      await Withdrawal.findByIdAndUpdate(
+        createdWithdrawal._id,
+        {
+          status: "PENDING",
+          txHash: responsespeed.data.id,
+          approvedBy: "system",
+          approvedAt: new Date(),
+        },
+        { session }
+      );
+
       await session.commitTransaction();
       return res.json({
         status: "PENDING",
