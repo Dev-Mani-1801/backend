@@ -177,6 +177,8 @@ UserMiningSchema.methods.checkAndApplyDailyLoss = function() {
       console.log(`User met requirement (${adsWatched}/${adsRequired}). Reduced loss by ${dailyOffset}%. New cumulative: ${this.lossTracking.cumulative_loss}%`);
     }
     
+    // Reset counter for new day
+    this.lossTracking.daily_ads_watched = 0;
     this.lossTracking.last_check_date = now;
   }
 };

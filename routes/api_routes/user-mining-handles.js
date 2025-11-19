@@ -34,15 +34,6 @@ const incrementDailyVideoCount = async (req, res) => {
       });
     }
 
-    // Check if we need to reset counter for new day
-    const now = new Date();
-    const lastReset = new Date(miningDetails.dailyVideoRequirement.lastResetDate);
-
-    if (now.toDateString() !== lastReset.toDateString()) {
-      miningDetails.resetDailyVideoCounter();
-    }
-
-    // Increment video count
     miningDetails.incrementDailyVideoCount();
 
     // Reset consecutive failures if they meet requirement
@@ -131,23 +122,6 @@ const getDailyProgress = async (req, res) => {
       });
     }
 
-    // Check if we need to reset counter for new day
-    const now = new Date();
-    const lastReset = miningDetails.dailyVideoRequirement?.lastResetDate 
-      ? new Date(miningDetails.dailyVideoRequirement.lastResetDate)
-      : new Date();
-
-    if (now.toDateString() !== lastReset.toDateString()) {
-      // Reset if methods exist, otherwise manually reset
-      if (typeof miningDetails.resetDailyVideoCounter === 'function') {
-        miningDetails.resetDailyVideoCounter();
-      } else {
-        miningDetails.dailyVideoRequirement.videosWatched = 0;
-        miningDetails.dailyVideoRequirement.lastResetDate = new Date();
-        miningDetails.lossTracking.daily_ads_watched = 0;
-      }
-      await miningDetails.save();
-    }
 
     // Get progress
     const dailyProgress = typeof miningDetails.getDailyProgress === 'function'
@@ -206,30 +180,11 @@ router.get("/:userId", async (req, res) => {
       await mining_details.save();
       console.log(`Migrated user ${userId}: claimed=${mining_details.claimedHashpower}, purchased=${mining_details.purchasedHashpower}`);
     }
-    
-    // Migration logic: if lossTracking is not set, initialize it
-    if (!mining_details.lossTracking || mining_details.lossTracking.cumulative_loss === undefined) {
-      console.log(`⚠️ User ${userId} missing lossTracking - initializing...`);
-      mining_details.lossTracking = {
-        daily_ads_watched: 0,
-        cumulative_loss: 0,
-        daily_loss_offset: 3.0,
-        daily_ads_required: 10,
-        last_check_date: new Date()
-      };
-      try {
-        await mining_details.save();
-        console.log(`✅ Migrated lossTracking for user ${userId}`);
-      } catch (error) {
-        console.error(`❌ Failed to save lossTracking for user ${userId}:`, error);
-      }
-    }
-    
-
     if (mining_details.purchasedHashpower > 0) {
       if (typeof mining_details.checkAndApplyDailyLoss === 'function') {
         mining_details.checkAndApplyDailyLoss();
         await mining_details.save();
+        console.log(`✅ Daily loss check completed for user ${userId}: cumulative_loss=${mining_details.lossTracking.cumulative_loss}%, daily_ads=${mining_details.lossTracking.daily_ads_watched}`);
       }
     }
 
