@@ -272,7 +272,7 @@ const effectiveHashpower = typeof mining_details.getEffectiveHashpower === 'func
 
       const user_balance = await Balance.findOne({ user: userId });
       if (user_balance) {
-        user_balance.BTC_DEPOSIT = parseFloat(user_balance.BTC_DEPOSIT?.toString() || "0") + btcToTransfer;
+        user_balance.BTC_DEPOSIT = parseFloat(user_balance.BTC_DEPOSIT?.toString() || "0") + calculated_btc;
         user_balance.BTC = 0;
         await user_balance.save();
       }

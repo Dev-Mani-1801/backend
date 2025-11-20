@@ -445,67 +445,6 @@ router.post("/create-speed-payment", async (req, res) => {
         { session }
       );
       createdWithdrawal = withdrawalArr[0];
-      // 3. Request invoice / payment from Speed API
-      const response = await fetch("https://api.tryspeed.com/payments", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization:
-            "Basic " + Buffer.from(SPEED_API_KEY + ":").toString("base64"),
-          "speed-version": "2022-10-15",
-        },
-        body: JSON.stringify({
-          amount,
-          currency,
-          target_currency,
-          payment_methods,
-          metadata,
-          to: speed_wallet_address, // tell Speed who to pay
-        }),
-      });
-
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(`Speed API error: ${data?.error || "Unknown error"}`);
-      }
-
-      if (!data?.id) {
-        throw new Error("Speed API did not return a valid invoice");
-      }
-
-      // (Currently using /send directly instead of paying a bolt11)
-      const dataspeed = JSON.stringify({
-        amount: createdWithdrawal.amountNumeric,
-        currency: createdWithdrawal.asset,
-        withdraw_method: "lightning",
-        withdraw_request: createdWithdrawal.toAddress,
-      });
-
-      const config = {
-        method: "post",
-        maxBodyLength: Infinity,
-        url: "https://api.tryspeed.com/send",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization:
-            "Basic c2tfdGVzdF9tZm9jNjdyN2JiZnhaVFhBbWZvcHJvYXlldFlObUZJcm1mb3Byb2F5Q0VFc1NveHg6",
-        },
-        data: dataspeed,
-      };
-
-      const responsespeed = await axios.request(config);
-
-      // 5. Update withdrawal record after successful payment
-      await Withdrawal.findByIdAndUpdate(
-        createdWithdrawal._id,
-        {
-          status: "PENDING",
-          txHash: responsespeed.data.id,
-          approvedBy: "system",
-          approvedAt: new Date(),
-        },
-        { session }
-      );
 
       await session.commitTransaction();
       return res.json({
