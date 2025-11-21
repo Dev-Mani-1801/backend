@@ -161,22 +161,27 @@ UserMiningSchema.methods.reduceCumulativeLoss = function() {
 UserMiningSchema.methods.checkAndApplyDailyLoss = function() {
   const now = new Date();
   const lastCheck = new Date(this.lossTracking.last_check_date || now);
-  
-  if (now.toDateString() !== lastCheck.toDateString()) {
+
+  // Calculate number of days passed
+  const msPerDay = 24 * 60 * 60 * 1000;
+  const daysPassed = Math.floor((now - lastCheck) / msPerDay);
+
+  if (daysPassed > 0) {
     const adsRequired = this.lossTracking.daily_ads_required || 10;
     const adsWatched = this.lossTracking.daily_ads_watched || 0;
-    
+
     if (adsWatched < adsRequired) {
-      // Apply daily loss
+      // Apply daily loss for EACH day that passed
       const dailyLoss = this.lossTracking.daily_loss_offset || 3.0;
-      this.lossTracking.cumulative_loss += dailyLoss;
-      console.log(`Applied ${dailyLoss}% loss. New cumulative: ${this.lossTracking.cumulative_loss}%`);
+      const totalLoss = dailyLoss * daysPassed;
+      this.lossTracking.cumulative_loss += totalLoss;
+      console.log(`Applied ${dailyLoss}% loss for ${daysPassed} day(s). Total loss added: ${totalLoss}%. New cumulative: ${this.lossTracking.cumulative_loss}%`);
     } else {
       const dailyOffset = this.lossTracking.daily_loss_offset || 3.0;
       this.lossTracking.cumulative_loss = Math.max(0, this.lossTracking.cumulative_loss - dailyOffset);
       console.log(`User met requirement (${adsWatched}/${adsRequired}). Reduced loss by ${dailyOffset}%. New cumulative: ${this.lossTracking.cumulative_loss}%`);
     }
-    
+
     // Reset counter for new day
     this.lossTracking.daily_ads_watched = 0;
     this.lossTracking.last_check_date = now;
