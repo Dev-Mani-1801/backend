@@ -76,13 +76,6 @@ const incrementLossOffsetAd = async (req, res) => {
       });
     }
 
-    // IMPORTANT: Check and apply daily loss FIRST (if new day and previous day's ads not met, adds loss)
-    // This ensures cumulative_loss is properly calculated before attempting to reduce it
-    if (miningDetails.purchasedHashpower > 0 && typeof miningDetails.checkAndApplyDailyLoss === 'function') {
-      miningDetails.checkAndApplyDailyLoss();
-      console.log(`Daily loss check in increment-loss-ad: cumulative_loss=${miningDetails.lossTracking.cumulative_loss}%`);
-    }
-
     // Increment ads watched
     miningDetails.incrementLossOffsetAds();
     const lossReduced = miningDetails.reduceCumulativeLoss();
