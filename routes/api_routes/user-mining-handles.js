@@ -210,6 +210,19 @@ router.get("/:userId", async (req, res) => {
       await mining_details.save();
       console.log(`✅ Migrated new fields for user ${userId}`);
     }
+
+    // Validate and fix hashpower relationship: ALWAYS ensure total = claimed + purchased
+    const claimed = mining_details.claimedHashpower || 0;
+    const purchased = mining_details.purchasedHashpower || 0;
+    const calculatedTotal = claimed + purchased;
+    
+    if (mining_details.hashpower !== calculatedTotal) {
+      console.warn(`⚠️ Hashpower mismatch detected! DB total=${mining_details.hashpower}, should be ${calculatedTotal} (claimed=${claimed} + purchased=${purchased})`);
+      mining_details.hashpower = calculatedTotal;
+      await mining_details.save();
+      console.log(`✅ Fixed hashpower: ${calculatedTotal}`);
+    }
+
     if (mining_details.purchasedHashpower > 0) {
       if (typeof mining_details.checkAndApplyDailyLoss === 'function') {
         mining_details.checkAndApplyDailyLoss();
@@ -447,16 +460,31 @@ router.post("/", async (req, res) => {
 
     // Handle hashpower update: separate claimed from purchased
     if (typeof hashpower === "number") {
-      // hashpower sent from frontend is the TOTAL (claimed + purchased)
-      // Extract the claimed portion using existing purchasedHashpower
       const currentPurchased = existingRecord?.purchasedHashpower || 0;
-      const claimedPortion = Math.max(0, hashpower - currentPurchased);
+      const currentClaimed = existingRecord?.claimedHashpower || 0;
+      
+      // Calculate claimed portion
+      // Frontend SHOULD send TOTAL, but sometimes sends only claimed
+      let claimedPortion;
+      let totalHashpower;
+      
+      if (hashpower >= currentPurchased) {
+        // Normal case: frontend sent total (claimed + purchased)
+        claimedPortion = hashpower - currentPurchased;
+        totalHashpower = hashpower;
+      } else {
+        // Edge case: frontend sent only claimed portion
+        // This happens when HashPowerStore has stale data
+        console.warn(`⚠️ Frontend sent ${hashpower} which is less than purchased ${currentPurchased}. Treating as claimed only.`);
+        claimedPortion = hashpower;
+        totalHashpower = claimedPortion + currentPurchased;
+      }
 
       updateData.claimedHashpower = claimedPortion;
       updateData.purchasedHashpower = currentPurchased; // Keep existing purchased
-      updateData.hashpower = hashpower; // Total remains as sent
+      updateData.hashpower = totalHashpower; // ALWAYS: total = claimed + purchased
 
-      console.log(`POST update: total=${hashpower}, claimed=${claimedPortion}, purchased=${currentPurchased}`);
+      console.log(`✅ POST update: total=${totalHashpower}, claimed=${claimedPortion}, purchased=${currentPurchased}`);
     }
 
     if (typeof rewarded_ads_watched === "number") updateData.rewarded_ads_watched = rewarded_ads_watched;
