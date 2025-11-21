@@ -180,6 +180,36 @@ router.get("/:userId", async (req, res) => {
       await mining_details.save();
       console.log(`Migrated user ${userId}: claimed=${mining_details.claimedHashpower}, purchased=${mining_details.purchasedHashpower}`);
     }
+
+    // Migration logic: Initialize dailyVideoRequirement and lossTracking for old users
+    let needsSave = false;
+    if (!mining_details.dailyVideoRequirement || !mining_details.dailyVideoRequirement.lastResetDate) {
+      console.log(`Migrating dailyVideoRequirement for user ${userId}`);
+      mining_details.dailyVideoRequirement = {
+        videosWatched: 0,
+        required: 10,
+        lastResetDate: new Date(),
+        consecutiveFailures: 0
+      };
+      needsSave = true;
+    }
+
+    if (!mining_details.lossTracking || !mining_details.lossTracking.last_check_date) {
+      console.log(`Migrating lossTracking for user ${userId}`);
+      mining_details.lossTracking = {
+        daily_ads_watched: 0,
+        cumulative_loss: 0,
+        daily_loss_offset: 3.0,
+        daily_ads_required: 10,
+        last_check_date: new Date()
+      };
+      needsSave = true;
+    }
+
+    if (needsSave) {
+      await mining_details.save();
+      console.log(`✅ Migrated new fields for user ${userId}`);
+    }
     if (mining_details.purchasedHashpower > 0) {
       if (typeof mining_details.checkAndApplyDailyLoss === 'function') {
         mining_details.checkAndApplyDailyLoss();
@@ -391,6 +421,30 @@ router.post("/", async (req, res) => {
 
     const updateData = {};
 
+    // Migration logic: Initialize missing fields for existing users
+    if (existingRecord) {
+      if (!existingRecord.dailyVideoRequirement || !existingRecord.dailyVideoRequirement.lastResetDate) {
+        console.log(`Migrating dailyVideoRequirement for existing user ${user_id}`);
+        updateData.dailyVideoRequirement = {
+          videosWatched: 0,
+          required: 10,
+          lastResetDate: new Date(),
+          consecutiveFailures: 0
+        };
+      }
+
+      if (!existingRecord.lossTracking || !existingRecord.lossTracking.last_check_date) {
+        console.log(`Migrating lossTracking for existing user ${user_id}`);
+        updateData.lossTracking = {
+          daily_ads_watched: 0,
+          cumulative_loss: 0,
+          daily_loss_offset: 3.0,
+          daily_ads_required: 10,
+          last_check_date: new Date()
+        };
+      }
+    }
+
     // Handle hashpower update: separate claimed from purchased
     if (typeof hashpower === "number") {
       // hashpower sent from frontend is the TOTAL (claimed + purchased)
@@ -445,6 +499,28 @@ router.post("/", async (req, res) => {
           updateData.start_time = existingRecord.start_time;
         }
       }
+    }
+
+    // Initialize nested objects for new records
+    if (!existingRecord) {
+      console.log(`Creating new mining record for user ${user_id} - initializing all default fields`);
+      
+      // Initialize dailyVideoRequirement
+      updateData.dailyVideoRequirement = {
+        videosWatched: 0,
+        required: 10,
+        lastResetDate: new Date(),
+        consecutiveFailures: 0
+      };
+
+      // Initialize lossTracking
+      updateData.lossTracking = {
+        daily_ads_watched: 0,
+        cumulative_loss: 0,
+        daily_loss_offset: 3.0,
+        daily_ads_required: 10,
+        last_check_date: new Date()
+      };
     }
 
     const mining_details = await UserMiningDetail.findOneAndUpdate(
