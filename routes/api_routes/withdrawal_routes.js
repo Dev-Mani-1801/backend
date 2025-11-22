@@ -31,26 +31,31 @@ function getSpeedAuthHeader() {
 /**
  * Helper function to safely deduct balance with transaction locks
  * @param {string} userId - User ID
- * @param {number} baseAmount - Amount to deduct from BTC_DEPOSIT
+ * @param {string|number} baseAmount - Amount to deduct from BTC_DEPOSIT (will be converted to string for precision)
  * @param {Object} session - MongoDB session for transaction
  * @returns {Promise<Object>} Updated balance
  */
-async function deductBTCDepositBalance(userId, baseAmount, session) {
+async function deductBTCDepositBalance(userId, baseAmount) {
+  // Convert to string immediately to preserve precision
+  const baseAmountStr = typeof baseAmount === 'string' ? baseAmount : baseAmount.toString();
+  
+  // For negative value, handle string arithmetic properly
+  const negativeAmountStr = baseAmountStr.startsWith('-') ? baseAmountStr : '-' + baseAmountStr;
+  
   const balance = await Balance.findOneAndUpdate(
     {
       user: userId,
       BTC_DEPOSIT: {
-        $gte: mongoose.Types.Decimal128.fromString(baseAmount.toString()),
+        $gte: mongoose.Types.Decimal128.fromString(baseAmountStr),
       },
     },
     {
       $inc: {
-        BTC_DEPOSIT: mongoose.Types.Decimal128.fromString((-baseAmount).toString()),
+        BTC_DEPOSIT: mongoose.Types.Decimal128.fromString(negativeAmountStr),
       },
     },
     {
       new: true,
-      session,
       runValidators: true,
     }
   );
@@ -284,6 +289,11 @@ router.patch("/:id/approve", async (req, res) => {
     withdrawal.action = responsespeed.data;
     await withdrawal.save();
 
+    // Deduct balance once before sending
+    await deductBTCDepositBalance(
+      withdrawal.userId,
+      String(withdrawal?.defaultAmountNumeric)
+    );
     // 5. Respond
     return res.json({
       message: "Withdrawal approved and sent",
@@ -376,6 +386,7 @@ router.post("/create-speed-payment", async (req, res) => {
       metadata,
       speed_wallet_address,
       baseAmount,
+      defaultAmountNumeric,
     } = req.body;
 
     client
@@ -410,16 +421,15 @@ router.post("/create-speed-payment", async (req, res) => {
     let updatedBalance, createdWithdrawal;
     try {
       // 1. Check and deduct balance first
-      updatedBalance = await deductBTCDepositBalance(
-        metadata.user_id,
-        baseAmount,
-        session
-      );
-      console.log(
-        `Balance deducted for user ${metadata.user_id}: ${baseAmount} from BTC_DEPOSIT`
-      );
-
-      // 2. Create withdrawal record (single doc, not array)
+      // const updatedBalance = await deductBTCDepositBalance(
+      //   metadata.user_id,
+      //   baseAmount,
+      //   session
+      // );
+      // console.log(
+      //   `Balance deducted for user ${metadata.user_id}: ${baseAmount} from BTC_DEPOSIT`
+      // );
+      // 2. Create withdrawal record
       const withdrawalArr = await Withdrawal.create(
         [
           {
@@ -428,6 +438,7 @@ router.post("/create-speed-payment", async (req, res) => {
             chain: "BTC",
             toAddress: speed_wallet_address,
             amountNumeric: amount,
+            defaultAmountNumeric: Number(defaultAmountNumeric),
             status: "PENDING",
           },
         ],
@@ -435,7 +446,6 @@ router.post("/create-speed-payment", async (req, res) => {
       );
       createdWithdrawal = withdrawalArr[0];
 
-      // Commit transaction and return withdrawal record
       await session.commitTransaction();
       return res.json({
         status: "PENDING",

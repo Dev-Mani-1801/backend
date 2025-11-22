@@ -29,6 +29,10 @@ const withdrawalSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  defaultAmountNumeric: {
+    type: mongoose.Schema.Types.Decimal128,
+    required: false,
+  },
   amountNumeric: {
     type: mongoose.Schema.Types.Decimal128,
     required: true,
