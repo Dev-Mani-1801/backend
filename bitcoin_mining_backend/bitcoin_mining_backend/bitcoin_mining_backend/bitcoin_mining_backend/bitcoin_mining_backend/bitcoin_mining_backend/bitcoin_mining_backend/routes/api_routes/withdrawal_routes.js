@@ -5,7 +5,7 @@ import Client from "lightning-client";
 import fs from "fs";
 
 const router = express.Router();
-const SPEED_API_KEY = 'sk_test_mfoc67r7bbfxZTXAmfoproayetYNmFIrmfoproayCEEsSoxx';
+const SPEED_API_KEY = process.env.SPEED_API_KEY;
 
 const rpcPath = "/home/pi/.lightning/bitcoin";
 const client = new Client(rpcPath);

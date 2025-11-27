@@ -29,6 +29,10 @@ const withdrawalSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  defaultAmountNumeric: {
+    type: mongoose.Schema.Types.Decimal128,
+    required: false,
+  },
   amountNumeric: {
     type: mongoose.Schema.Types.Decimal128,
     required: true,
@@ -44,6 +48,10 @@ const withdrawalSchema = new mongoose.Schema({
   },
   approvedBy: String,
   approvedAt: Date,
+  action: {
+    type: mongoose.Schema.Types.Mixed,
+    default: null
+  },
 }, { timestamps: { createdAt: "created_at", updatedAt: true } });
 
 export default mongoose.model("Withdrawal", withdrawalSchema);
