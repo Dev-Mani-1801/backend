@@ -8,6 +8,7 @@ import connectDB from './config/database.js';
 import { fileURLToPath } from 'url';
 import adminRoutes from './routes/admin.js';
 import apiRoutes from './routes/api.js';
+import mobileApiProxy from './routes/mobile-api-proxy.js';
 import tables_check from './helpers/create_tables.js';
 import connectAlchemyWS from './webhooks/alchemyWatcher.js';
 import { connectBTCWatcher } from "./webhooks/btcWatcher.js";
@@ -65,6 +66,7 @@ app.get('/', (req, res) => {
 // Routes
 app.use('/admin', adminRoutes);
 app.use('/api', apiRoutes);
+app.use('/mobile_api', mobileApiProxy);
 
 // Handle 404
 app.use('*', (req, res) => {
