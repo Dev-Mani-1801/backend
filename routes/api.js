@@ -22,6 +22,7 @@ import security_handles from './api_routes/security_handles.js'
 import user_mining_handles from './api_routes/user-mining-handles.js'
 import claim_daily_miner from './api_routes/daily-miner-handles.js'
 import purchase_handles from './api_routes/purchases.js'
+import mining_session_handles from './api_routes/mining-session-handles.js'
 
 const router = express.Router();
 
@@ -131,9 +132,13 @@ router.get("/referrals", async (req, res) => {
     // Directly query MongoDB collection instead of User model
     const usersCollection = mongoose.connection.collection("users");
 
+    // Count only ACTIVE users who used this referral code
     const count = await usersCollection.countDocuments({
       referralUsed: { $regex: `^${code}$`, $options: "i" }, // case-insensitive
+      isActive: true  // Only count active users
     });
+
+    console.log(`Referral count for ${code}: ${count} active users`);
 
     res.json({
       success: true,
@@ -172,5 +177,6 @@ router.use('/security', security_handles);
 router.use('/user_mining', user_mining_handles);
 router.use('/claim_daily_miner', claim_daily_miner);
 router.use('/purchases', purchase_handles);
+router.use('/mining-sessions', mining_session_handles);
 
 export default router;

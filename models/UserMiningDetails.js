@@ -108,6 +108,10 @@ const UserMiningSchema = new mongoose.Schema({
       type: Date,
       default: Date.now
     }
+  },
+  lastResetTime: {
+    type: Date,
+    default: null  // Tracks when the daily reset cron last ran for this user
   }
 }, { timestamps: true });
 
