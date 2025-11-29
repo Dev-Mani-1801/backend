@@ -7,7 +7,7 @@ const router = express.Router();
 
 router.post('/create', async (req, res) => {
   try {
-    const { name, hashrate, hashrate_unit, duration, maintenance_cost, plan_cost } = req.body;
+    const { name, hashrate, hashrate_unit, duration, maintenance_cost, plan_cost, apple_identifier, google_identifier } = req.body;
 
     const newPlan = new SubscriptionPlan({
       id: uuidv4(),
@@ -17,6 +17,8 @@ router.post('/create', async (req, res) => {
       unit: hashrate_unit,
       maintenance_cost: parseFloat(maintenance_cost),
       plan_cost: parseFloat(plan_cost),
+      apple_identifier: apple_identifier || "",
+      google_identifier: google_identifier || ""
     });
 
     await newPlan.save();

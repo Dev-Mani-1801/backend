@@ -44,6 +44,16 @@
                 <label for="plan_cost" class="form-label">Plan Cost ($)</label>
                 <input type="number" step="0.01" class="form-control" name="plan_cost" id="plan_cost" required />
             </div>
+
+            <div class="mb-3">
+                <label for="apple_identifier" class="form-label">Apple Identifier</label>
+                <input type="text" class="form-control" name="apple_identifier" id="apple_identifier" />
+            </div>
+
+            <div class="mb-3">
+                <label for="google_identifier" class="form-label">Google Identifier</label>
+                <input type="text" class="form-control" name="google_identifier" id="google_identifier" />
+            </div>
         </div>
 
         <div class="modal-footer">
@@ -87,6 +97,8 @@
                         <th>Duration (Months)</th>
                         <th>Maintenance Cost</th>
                         <th>Plan Cost</th>
+                        <th>Apple Identifier</th>
+                        <th>Google Identifier</th>
                         <th>Actions</th>
                     </tr>
                     </thead>
@@ -100,6 +112,8 @@
                             <td><%= plan.duration %></td>
                             <td>$<%= plan.maintenance_cost.toFixed(2) %></td>
                             <td>$<%= plan.plan_cost.toFixed(2) %></td>
+                            <td><%= plan.apple_identifier || '' %></td>
+                            <td><%= plan.google_identifier || '' %></td>
                             <td>
                                 <button class="btn btn-danger btn-sm delete-plan-btn">Delete</button>
                             </td>
@@ -158,6 +172,8 @@
                             <td>${plan.duration}</td>
                             <td>$${plan.maintenance_cost}</td>
                             <td>$${plan.plan_cost}</td>
+                            <td>${plan.apple_identifier || ''}</td>
+                            <td>${plan.google_identifier || ''}</td>
                             <td>
                                 <button class="btn btn-danger btn-sm delete-plan-btn">Delete</button>
                             </td>

@@ -2,36 +2,15 @@
 import mongoose from 'mongoose';
 
 const subscriptionPlanSchema = new mongoose.Schema({
-  name: {
-    type: String,
-    required: true
-  },
-  id: {
-    type: String,
-    required: true,
-    unique: true
-  },
-  hashrate: {
-    type: Number,
-    required: true
-  },
-  unit: {
-    type: String,
-    required: true,
-    default: "GH/s"
-  },
-  duration: {
-    type: Number, // in months
-    required: true
-  },
-  maintenance_cost: {
-    type: Number,
-    required: true
-  },
-  plan_cost: {
-    type: Number,
-    required: true
-  }
+  id: { type: String, unique: true, required: true },
+  name: { type: String },
+  hashrate: { type: Number },
+  unit: { type: String },
+  duration: { type: Number },
+  maintenance_cost: { type: Number },
+  plan_cost: { type: Number },
+  apple_identifier: { type: String },
+  google_identifier: { type: String }
 });
 
 const SubscriptionPlan = mongoose.models.SubscriptionPlan || mongoose.model('SubscriptionPlan', subscriptionPlanSchema);
