@@ -66,7 +66,6 @@ app.get('/', (req, res) => {
 // Routes
 app.use('/admin', adminRoutes);
 app.use('/api', apiRoutes);
-app.use('/mobile_api', mobileApiProxy);
 
 // Handle 404
 app.use('*', (req, res) => {

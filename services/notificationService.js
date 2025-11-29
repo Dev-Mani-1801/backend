@@ -126,17 +126,22 @@ export const sendVideoReminderNotification = async (userId, adsWatched, maxAds) 
  * Send clock reset notification
  *
  * @param {string} userId - User ID
- * @param {number} hoursRemaining - Hours remaining before expiry
+ * @param {number} hoursRemaining - Hours remaining before expiry (optional - for midnight reset)
  * @returns {Promise<object>} - Result
  */
-export const sendClockResetNotification = async (userId, hoursRemaining) => {
+export const sendClockResetNotification = async (userId, hoursRemaining = null) => {
+  // If hoursRemaining is null, it's a midnight reset notification
+  const isMidnightReset = hoursRemaining === null;
+  
   return sendNotificationToUser(userId, {
-    title: '⚡ Time Running Out!',
-    body: `Only ${hoursRemaining} hour${hoursRemaining > 1 ? 's' : ''} left on your mining timer. Watch videos to extend your mining session!`,
+    title: isMidnightReset ? '🌙 Daily Mining Reset!' : '⚡ Time Running Out!',
+    body: isMidnightReset 
+      ? 'Your 24-hour mining cycle has reset. Watch videos to boost your hashpower and start earning again!'
+      : `Only ${hoursRemaining} hour${hoursRemaining > 1 ? 's' : ''} left on your mining timer. Watch videos to extend your mining session!`,
     data: {
-      type: 'clock_reset',
+      type: isMidnightReset ? 'midnight_reset' : 'clock_reset',
       action: 'open_home',
-      hours_remaining: hoursRemaining.toString(),
+      hours_remaining: hoursRemaining?.toString() || '0',
     },
   });
 };

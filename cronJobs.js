@@ -78,12 +78,20 @@ cron.schedule("0 0 * * *", async () => {
 
         console.log(`Reset user ${userId}: claimed=0, purchased=${purchasedHashpower}, total=${purchasedHashpower}, resetTime=${now.toISOString()}`);
 
+        // Send midnight clock reset notification
+        try {
+          await sendClockResetNotification(userId);
+          console.log(`✅ Midnight notification sent to user ${userId}`);
+        } catch (notifErr) {
+          console.error(`❌ Failed to send midnight notification to user ${userId}:`, notifErr.message);
+        }
+
       } catch (userErr) {
         console.error(`Error resetting user ${miningDetail.user}:`, userErr);
       }
     }
 
-    console.log("Daily mining power reset completed successfully");
+    console.log("Daily mining power reset completed successfully with notifications sent");
 
   } catch (err) {
     console.error("Error in daily mining power reset cron job:", err);
