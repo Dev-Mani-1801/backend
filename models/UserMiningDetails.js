@@ -194,7 +194,7 @@ UserMiningSchema.methods.checkAndApplyDailyLoss = function() {
 
 // Method to get effective hashpower after loss
 UserMiningSchema.methods.getEffectiveHashpower = function() {
-  const totalHashpower = this.hashpower || 0;
+  const totalHashpower = this.hashpower* (1 - lossPercentage / 100) || 0;
   const lossPercentage = this.lossTracking.cumulative_loss || 0;
   const effectiveHashpower = totalHashpower * (1 - lossPercentage / 100);
   return Math.max(0, effectiveHashpower); // Never go below 0
