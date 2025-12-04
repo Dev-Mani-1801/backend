@@ -361,6 +361,7 @@ const effectiveHashpower = typeof mining_details.getEffectiveHashpower === 'func
             stop_time: 0,
             local_start_time: null,
             local_stop_time: null,
+            lastResetTime: new Date()
           },
         }
       );
