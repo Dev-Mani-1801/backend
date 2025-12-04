@@ -49,9 +49,8 @@ router.post('/:userId', async (req, res) => {
     let userMining = await UserMiningDetail.findOne({ user: userId }).session(session);
     const existingHashPower = userMining ? userMining.hashpower : 0;
 
-    // Calculate updated hashpower (2x multiplier: users get double the purchased hashpower)
-    const hashpowerToAdd = plan.hashrate * 2;
-    const updatedHashPower = existingHashPower + hashpowerToAdd;
+    // Calculate updated hashpower
+    const updatedHashPower = existingHashPower + plan.hashrate;
 
     console.log(`Hashpower update: ${existingHashPower} -> ${updatedHashPower}`);
 
@@ -78,9 +77,9 @@ router.post('/:userId', async (req, res) => {
       // Create new mining details if not exists
       userMining = new UserMiningDetail({
         user: userId,
-        hashpower: hashpowerToAdd,
+        hashpower: plan.hashrate,
         claimedHashpower: 0,
-        purchasedHashpower: hashpowerToAdd, // Set purchased hashpower (2x)
+        purchasedHashpower: plan.hashrate, // Set purchased hashpower
         rewarded_ads_watched: 0,
         thirty_gh_rewarded_ads_watched: 0,
         random_ads_watched: 0,
@@ -93,11 +92,11 @@ router.post('/:userId', async (req, res) => {
       });
       console.log('Created new mining details for user:', userId);
     } else {
-      // Add hashrate to existing mining power (2x multiplier: users get double the purchased hashpower)
+      // Add hashrate to existing mining power
       const existingClaimed = userMining.claimedHashpower || 0;
       const existingPurchased = userMining.purchasedHashpower || 0;
 
-      userMining.purchasedHashpower = existingPurchased + hashpowerToAdd; // Add to purchased (2x)
+      userMining.purchasedHashpower = existingPurchased + plan.hashrate; // Add to purchased
       userMining.hashpower = updatedHashPower; // Total = claimed + purchased
 
       // Migration: Initialize missing fields for old users
