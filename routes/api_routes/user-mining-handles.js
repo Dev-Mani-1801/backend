@@ -196,14 +196,14 @@ router.get("/:userId", async (req, res) => {
 
     if (!mining_details.lossTracking || !mining_details.lossTracking.last_check_date) {
       console.log(`Migrating lossTracking for user ${userId}`);
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
+      // const yesterday = new Date();
+      // yesterday.setDate(yesterday.getDate() - 1);
       mining_details.lossTracking = {
         daily_ads_watched: 0,
         cumulative_loss: 0,
         daily_loss_offset: 3.0,
         daily_ads_required: 10,
-        last_check_date: yesterday
+        last_check_date: new Date()
       };
       needsSave = true;
     }
@@ -451,14 +451,14 @@ router.post("/", async (req, res) => {
 
       if (!existingRecord.lossTracking || !existingRecord.lossTracking.last_check_date) {
         console.log(`Migrating lossTracking for existing user ${user_id}`);
-        const yesterday = new Date();
-        yesterday.setDate(yesterday.getDate() - 1);
+        // const yesterday = new Date();
+        // yesterday.setDate(yesterday.getDate() - 1);
         updateData.lossTracking = {
           daily_ads_watched: 0,
           cumulative_loss: 0,
           daily_loss_offset: 3.0,
           daily_ads_required: 10,
-          last_check_date: yesterday
+          last_check_date: new Date()
         };
       }
     }
@@ -547,14 +547,14 @@ router.post("/", async (req, res) => {
       };
 
       // Initialize lossTracking
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
+      // const yesterday = new Date();
+      // yesterday.setDate(yesterday.getDate() - 1);
       updateData.lossTracking = {
         daily_ads_watched: 0,
         cumulative_loss: 0,
         daily_loss_offset: 3.0,
         daily_ads_required: 10,
-        last_check_date: yesterday
+        last_check_date: new Date()
       };
     }
 
