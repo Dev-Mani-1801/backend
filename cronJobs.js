@@ -12,6 +12,7 @@ import {
   sendClockResetNotification,
   sendVideoReminderNotification,
   sendDailyRewardReminder,
+  sendMiningStoppedNotification,
 } from "./services/notificationService.js";
 import { initializeFirebase } from "./config/firebase.js";
 
@@ -78,12 +79,12 @@ cron.schedule("0 0 * * *", async () => {
 
         console.log(`Reset user ${userId}: claimed=0, purchased=${purchasedHashpower}, total=${purchasedHashpower}, resetTime=${now.toISOString()}`);
 
-        // Send midnight clock reset notification
+        // Send mining stopped notification
         try {
-          await sendClockResetNotification(userId);
-          console.log(`✅ Midnight notification sent to user ${userId}`);
+          await sendMiningStoppedNotification(userId);
+          console.log(`✅ Mining stopped notification sent to user ${userId}`);
         } catch (notifErr) {
-          console.error(`❌ Failed to send midnight notification to user ${userId}:`, notifErr.message);
+          console.error(`❌ Failed to send mining stopped notification to user ${userId}:`, notifErr.message);
         }
 
       } catch (userErr) {
