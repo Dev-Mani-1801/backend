@@ -163,6 +163,7 @@ UserMiningSchema.methods.reduceCumulativeLoss = function() {
 
 // Method to check and apply daily loss
 UserMiningSchema.methods.checkAndApplyDailyLoss = function() {
+  return
   const now = new Date();
   const lastCheck = new Date(this.lossTracking.last_check_date || now);
 
@@ -171,6 +172,7 @@ UserMiningSchema.methods.checkAndApplyDailyLoss = function() {
   const daysPassed = Math.floor((now - lastCheck) / msPerDay);
 
   if (daysPassed > 0) {
+    return
     const adsRequired = this.lossTracking.daily_ads_required || 10;
     const adsWatched = this.lossTracking.daily_ads_watched || 0;
 
@@ -193,11 +195,16 @@ UserMiningSchema.methods.checkAndApplyDailyLoss = function() {
 };
 
 // Method to get effective hashpower after loss
+// DISABLED: Cumulative loss is no longer active, return full hashpower
 UserMiningSchema.methods.getEffectiveHashpower = function() {
   const totalHashpower = this.hashpower || 0;
+  return totalHashpower; // Return full hashpower, no loss applied
+  
+  /* DISABLED CODE
   const lossPercentage = this.lossTracking.cumulative_loss || 0;
   const effectiveHashpower = totalHashpower * (1 - lossPercentage / 100);
   return Math.max(0, effectiveHashpower); // Never go below 0
+  */
 };
 
 export default mongoose.model("UserMining", UserMiningSchema);

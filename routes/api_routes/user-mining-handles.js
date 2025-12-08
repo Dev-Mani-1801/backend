@@ -65,6 +65,17 @@ const incrementDailyVideoCount = async (req, res) => {
  */
 const incrementLossOffsetAd = async (req, res) => {
   try {
+    // DISABLED: Cumulative loss tracking is no longer active
+    // Return success but don't track anything
+    return res.status(200).json({
+      success: true,
+      message: 'Feature disabled',
+      daily_ads_watched: 0,
+      cumulative_loss: 0,
+      loss_reduced: false
+    });
+
+    /* DISABLED CODE
     const { user } = req.body;
 
     let miningDetails = await UserMiningDetail.findOne({ user });
@@ -90,6 +101,7 @@ const incrementLossOffsetAd = async (req, res) => {
       cumulative_loss: miningDetails.lossTracking.cumulative_loss,
       loss_reduced: lossReduced 
     });
+    */
   } catch (error) {
     console.error('Error incrementing loss offset ads:', error);
     res.status(500).json({
@@ -181,37 +193,8 @@ router.get("/:userId", async (req, res) => {
       console.log(`Migrated user ${userId}: claimed=${mining_details.claimedHashpower}, purchased=${mining_details.purchasedHashpower}`);
     }
 
-    // Migration logic: Initialize dailyVideoRequirement and lossTracking for old users
-    let needsSave = false;
-    if (!mining_details.dailyVideoRequirement || !mining_details.dailyVideoRequirement.lastResetDate) {
-      console.log(`Migrating dailyVideoRequirement for user ${userId}`);
-      mining_details.dailyVideoRequirement = {
-        videosWatched: 0,
-        required: 10,
-        lastResetDate: new Date(),
-        consecutiveFailures: 0
-      };
-      needsSave = true;
-    }
-
-    if (!mining_details.lossTracking || !mining_details.lossTracking.last_check_date) {
-      console.log(`Migrating lossTracking for user ${userId}`);
-      // const yesterday = new Date();
-      // yesterday.setDate(yesterday.getDate() - 1);
-      mining_details.lossTracking = {
-        daily_ads_watched: 0,
-        cumulative_loss: 0,
-        daily_loss_offset: 3.0,
-        daily_ads_required: 10,
-        last_check_date: new Date()
-      };
-      needsSave = true;
-    }
-
-    if (needsSave) {
-      await mining_details.save();
-      console.log(`✅ Migrated new fields for user ${userId}`);
-    }
+    // DISABLED: Migration logic removed - loss tracking is no longer active
+    // Old migration code has been removed to prevent any loss tracking initialization
 
     // Validate and fix hashpower relationship: ALWAYS ensure total = claimed + purchased
     const claimed = mining_details.claimedHashpower || 0;
@@ -225,18 +208,17 @@ router.get("/:userId", async (req, res) => {
       console.log(`✅ Fixed hashpower: ${calculatedTotal}`);
     }
 
-    if (mining_details.purchasedHashpower > 0) {
-      if (typeof mining_details.checkAndApplyDailyLoss === 'function') {
-        mining_details.checkAndApplyDailyLoss();
-        await mining_details.save();
-        console.log(`✅ Daily loss check completed for user ${userId}: cumulative_loss=${mining_details.lossTracking.cumulative_loss}%, daily_ads=${mining_details.lossTracking.daily_ads_watched}`);
-      }
-    }
+    // DISABLED: Cumulative loss tracking is no longer active
+    // if (mining_details.purchasedHashpower > 0) {
+    //   if (typeof mining_details.checkAndApplyDailyLoss === 'function') {
+    //     mining_details.checkAndApplyDailyLoss();
+    //     await mining_details.save();
+    //     console.log(`✅ Daily loss check completed for user ${userId}: cumulative_loss=${mining_details.lossTracking.cumulative_loss}%, daily_ads=${mining_details.lossTracking.daily_ads_watched}`);
+    //   }
+    // }
 
-// Use effective hashpower for mining calculations
-const effectiveHashpower = typeof mining_details.getEffectiveHashpower === 'function'
-  ? mining_details.getEffectiveHashpower()
-  : mining_details.hashpower;
+// Use full hashpower (cumulative loss disabled)
+const effectiveHashpower = mining_details.hashpower;
 
 
     const { hashpower, offset, local_start_time } = mining_details;
@@ -437,31 +419,7 @@ router.post("/", async (req, res) => {
 
     const updateData = {};
 
-    // Migration logic: Initialize missing fields for existing users
-    if (existingRecord) {
-      if (!existingRecord.dailyVideoRequirement || !existingRecord.dailyVideoRequirement.lastResetDate) {
-        console.log(`Migrating dailyVideoRequirement for existing user ${user_id}`);
-        updateData.dailyVideoRequirement = {
-          videosWatched: 0,
-          required: 10,
-          lastResetDate: new Date(),
-          consecutiveFailures: 0
-        };
-      }
-
-      if (!existingRecord.lossTracking || !existingRecord.lossTracking.last_check_date) {
-        console.log(`Migrating lossTracking for existing user ${user_id}`);
-        // const yesterday = new Date();
-        // yesterday.setDate(yesterday.getDate() - 1);
-        updateData.lossTracking = {
-          daily_ads_watched: 0,
-          cumulative_loss: 0,
-          daily_loss_offset: 3.0,
-          daily_ads_required: 10,
-          last_check_date: new Date()
-        };
-      }
-    }
+    // DISABLED: Migration logic removed - loss tracking is no longer active
 
     // Handle hashpower update: separate claimed from purchased
     if (typeof hashpower === "number") {
@@ -534,29 +492,8 @@ router.post("/", async (req, res) => {
       }
     }
 
-    // Initialize nested objects for new records
-    if (!existingRecord) {
-      console.log(`Creating new mining record for user ${user_id} - initializing all default fields`);
-      
-      // Initialize dailyVideoRequirement
-      updateData.dailyVideoRequirement = {
-        videosWatched: 0,
-        required: 10,
-        lastResetDate: new Date(),
-        consecutiveFailures: 0
-      };
-
-      // Initialize lossTracking
-      // const yesterday = new Date();
-      // yesterday.setDate(yesterday.getDate() - 1);
-      updateData.lossTracking = {
-        daily_ads_watched: 0,
-        cumulative_loss: 0,
-        daily_loss_offset: 3.0,
-        daily_ads_required: 10,
-        last_check_date: new Date()
-      };
-    }
+    // DISABLED: Loss tracking initialization removed for new records
+    // Loss tracking feature is no longer active
 
     const mining_details = await UserMiningDetail.findOneAndUpdate(
       { user: user_id },
