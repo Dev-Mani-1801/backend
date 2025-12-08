@@ -11,13 +11,15 @@ router.get('/:userId', async (req, res) => {
     let user_preferences = await NotificationPreference.findOne({ user: userId });
 
     if (!user_preferences) {
-      user_preferences = new NotificationPreference({
+      // Default to push notifications enabled (opt-out model)
+      // Only create preference record when user explicitly sets it
+      user_preferences = {
         user: userId,
         email: false,
-        push: false,
+        push: true, // Default to enabled
         sms: false,
-      });
-      await user_preferences.save();
+      };
+      // Don't save to DB yet - only save when user explicitly updates preferences
     }
 
     res.status(200).json({

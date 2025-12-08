@@ -24,9 +24,11 @@ export const sendNotificationToUser = async (userId, notification) => {
     }
 
     // Check if user has push notifications enabled
+    // Default behavior: If no preference exists, allow notifications (opt-out model)
+    // Only block if preference explicitly exists and is set to false
     const preferences = await NotificationPreferences.findOne({ user: userId });
 
-    if (preferences && !preferences.push) {
+    if (preferences && preferences.push === false) {
       console.log(`Push notifications disabled for user ${userId}`);
       return { success: false, reason: 'User has disabled push notifications' };
     }
@@ -40,6 +42,7 @@ export const sendNotificationToUser = async (userId, notification) => {
     }
 
     // Prepare FCM message
+    // Firebase automatically detects platform from token
     const message = {
       notification: {
         title: notification.title,
@@ -72,6 +75,8 @@ export const sendNotificationToUser = async (userId, notification) => {
 
   } catch (error) {
     console.error(`❌ Error sending notification to user ${userId}:`, error.message);
+    console.error(`   Error code: ${error.code || 'N/A'}`);
+    console.error(`   Full error:`, error);
 
     // Handle invalid token error (user uninstalled app or token expired)
     if (error.code === 'messaging/invalid-registration-token' ||
@@ -81,7 +86,19 @@ export const sendNotificationToUser = async (userId, notification) => {
       console.log(`Removed invalid FCM token for user ${userId}`);
     }
 
-    return { success: false, error: error.message };
+    // Handle APNS auth errors
+    if (error.code === 'messaging/authentication-error' || 
+        error.code === 'messaging/third-party-auth-error' ||
+        error.message?.includes('Auth error from APNS')) {
+      console.error(`   ⚠️  APNS Authentication Error - Possible causes:`);
+      console.error(`      1. iOS Simulator doesn't support push notifications (use real device)`);
+      console.error(`      2. APNS key mismatch in Firebase Console`);
+      console.error(`      3. App bundle ID doesn't match Firebase configuration`);
+      console.error(`      4. Token is from development but sending to production (or vice versa)`);
+      console.error(`      5. Service account might need additional permissions`);
+    }
+
+    return { success: false, error: error.message, code: error.code };
   }
 };
 
@@ -164,6 +181,24 @@ export const sendDailyRewardReminder = async (userId) => {
 };
 
 /**
+ * Send mining stopped notification
+ * This is sent when user's mining is reset/stopped by the cron job
+ *
+ * @param {string} userId - User ID
+ * @returns {Promise<object>} - Result
+ */
+export const sendMiningStoppedNotification = async (userId) => {
+  return sendNotificationToUser(userId, {
+    title: '⛏️ Mining Stopped',
+    body: 'User mining stopped please start mining',
+    data: {
+      type: 'mining_stopped',
+      action: 'open_home',
+    },
+  });
+};
+
+/**
  * Send custom notification
  *
  * @param {string} userId - User ID
@@ -226,6 +261,7 @@ export default {
   sendVideoReminderNotification,
   sendClockResetNotification,
   sendDailyRewardReminder,
+  sendMiningStoppedNotification,
   sendCustomNotification,
   sendBulkNotifications,
 };
