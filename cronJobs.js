@@ -26,7 +26,7 @@ const MONGO_URI = "mongodb+srv://growthdev1:Ji0LlqjCuFzlYP9s@cluster0.zgxt7d9.mo
 const BTC_PER_HASHPOWER_PER_SEC = 0.000000000001;
 const MAX_MINING_DURATION_MS = 24 * 60 * 60 * 1000;
 
-// Run at midnight server time: "0 0 * * *"
+// Run at midnight server time: "0 0 * * *"\
 cron.schedule("0 0 * * *", async () => {
   console.log("Running daily mining power reset job at midnight...");
 
@@ -219,42 +219,42 @@ cron.schedule("0 */6 * * *", async () => {
  * Send daily reward reminders at 9 AM server time
  *
  */
-cron.schedule("0 9 * * *", async () => {
-  console.log("🎁 Sending daily reward reminders...");
+// cron.schedule("0 9 * * *", async () => {
+//   console.log("🎁 Sending daily reward reminders...");
 
-  try {
-    await mongoose.connect(MONGO_URI);
+//   try {
+//     await mongoose.connect(MONGO_URI);
 
-    // Find users who haven't claimed daily reward yet
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+//     // Find users who haven't claimed daily reward yet
+//     const today = new Date();
+//     today.setHours(0, 0, 0, 0);
 
-    const unclaimedUsers = await DailyFreeMiner.distinct('userId', {
-      createdAt: { $lt: today }
-    });
+//     const unclaimedUsers = await DailyFreeMiner.distinct('userId', {
+//       createdAt: { $lt: today }
+//     });
 
-    // Get all users with mining details
-    const allUsers = await UserMiningDetail.find({}, 'user');
+//     // Get all users with mining details
+//     const allUsers = await UserMiningDetail.find({}, 'user');
 
-    // Filter users who haven't claimed today
-    const usersToNotify = allUsers
-      .map(u => u.user)
-      .filter(userId => !unclaimedUsers.includes(userId));
+//     // Filter users who haven't claimed today
+//     const usersToNotify = allUsers
+//       .map(u => u.user)
+//       .filter(userId => !unclaimedUsers.includes(userId));
 
-    console.log(`Sending daily reward reminders to ${usersToNotify.length} users`);
+//     console.log(`Sending daily reward reminders to ${usersToNotify.length} users`);
 
-    for (const userId of usersToNotify) {
-      try {
-        await sendDailyRewardReminder(userId);
-        console.log(`✅ Sent daily reward reminder to user ${userId}`);
-      } catch (notifyErr) {
-        console.error(`Error sending reward reminder to user ${userId}:`, notifyErr);
-      }
-    }
+//     // for (const userId of usersToNotify) {
+//     //   try {
+//     //     await sendDailyRewardReminder(userId);
+//     //     console.log(`✅ Sent daily reward reminder to user ${userId}`);
+//     //   } catch (notifyErr) {
+//     //     console.error(`Error sending reward reminder to user ${userId}:`, notifyErr);
+//     //   }
+//     // }
 
-    console.log("Daily reward reminders completed");
+//     console.log("Daily reward reminders completed");
 
-  } catch (err) {
-    console.error("Error in daily reward reminder cron job:", err);
-  }
-});
+//   } catch (err) {
+//     console.error("Error in daily reward reminder cron job:", err);
+//   }
+// });
