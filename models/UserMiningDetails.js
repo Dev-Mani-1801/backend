@@ -198,13 +198,10 @@ UserMiningSchema.methods.checkAndApplyDailyLoss = function() {
 // DISABLED: Cumulative loss is no longer active, return full hashpower
 UserMiningSchema.methods.getEffectiveHashpower = function() {
   const totalHashpower = this.hashpower || 0;
-  return totalHashpower; // Return full hashpower, no loss applied
-  
-  /* DISABLED CODE
+  // Apply cumulative loss (e.g., 3% loss per cumulative_loss)
   const lossPercentage = this.lossTracking.cumulative_loss || 0;
   const effectiveHashpower = totalHashpower * (1 - lossPercentage / 100);
-  return Math.max(0, effectiveHashpower); // Never go below 0
-  */
+  return Math.max(0, effectiveHashpower); // Never go below zero
 };
 
 export default mongoose.model("UserMining", UserMiningSchema);

@@ -65,17 +65,6 @@ const incrementDailyVideoCount = async (req, res) => {
  */
 const incrementLossOffsetAd = async (req, res) => {
   try {
-    // DISABLED: Cumulative loss tracking is no longer active
-    // Return success but don't track anything
-    return res.status(200).json({
-      success: true,
-      message: 'Feature disabled',
-      daily_ads_watched: 0,
-      cumulative_loss: 0,
-      loss_reduced: false
-    });
-
-    /* DISABLED CODE
     const { user } = req.body;
 
     let miningDetails = await UserMiningDetail.findOne({ user });
@@ -101,7 +90,6 @@ const incrementLossOffsetAd = async (req, res) => {
       cumulative_loss: miningDetails.lossTracking.cumulative_loss,
       loss_reduced: lossReduced 
     });
-    */
   } catch (error) {
     console.error('Error incrementing loss offset ads:', error);
     res.status(500).json({
@@ -217,8 +205,11 @@ router.get("/:userId", async (req, res) => {
     //   }
     // }
 
-// Use full hashpower (cumulative loss disabled)
-const effectiveHashpower = mining_details.hashpower;
+// Use effective hashpower (cumulative loss applied)
+let effectiveHashpower = mining_details.hashpower;
+if (typeof mining_details.getEffectiveHashpower === 'function') {
+  effectiveHashpower = mining_details.getEffectiveHashpower();
+}
 
 
     const { hashpower, offset, local_start_time } = mining_details;
@@ -425,29 +416,16 @@ router.post("/", async (req, res) => {
     if (typeof hashpower === "number") {
       const currentPurchased = existingRecord?.purchasedHashpower || 0;
       const currentClaimed = existingRecord?.claimedHashpower || 0;
-      
-      // Calculate claimed portion
-      // Frontend SHOULD send TOTAL, but sometimes sends only claimed
-      let claimedPortion;
-      let totalHashpower;
-      
-      if (hashpower >= currentPurchased) {
-        // Normal case: frontend sent total (claimed + purchased)
-        claimedPortion = hashpower - currentPurchased;
-        totalHashpower = hashpower;
-      } else {
-        // Edge case: frontend sent only claimed portion
-        // This happens when HashPowerStore has stale data
-        console.warn(`⚠️ Frontend sent ${hashpower} which is less than purchased ${currentPurchased}. Treating as claimed only.`);
-        claimedPortion = hashpower;
-        totalHashpower = claimedPortion + currentPurchased;
-      }
+      // Always treat incoming hashpower as the amount to add to claimed
+      const claimedToAdd = hashpower;
+      const newClaimed = currentClaimed + claimedToAdd;
+      const totalHashpower = newClaimed + currentPurchased;
 
-      updateData.claimedHashpower = claimedPortion;
+      updateData.claimedHashpower = newClaimed;
       updateData.purchasedHashpower = currentPurchased; // Keep existing purchased
       updateData.hashpower = totalHashpower; // ALWAYS: total = claimed + purchased
 
-      console.log(`✅ POST update: total=${totalHashpower}, claimed=${claimedPortion}, purchased=${currentPurchased}`);
+      console.log(`✅ POST update: total=${totalHashpower}, claimed=${newClaimed}, purchased=${currentPurchased}`);
     }
 
     if (typeof rewarded_ads_watched === "number") updateData.rewarded_ads_watched = rewarded_ads_watched;
