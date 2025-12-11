@@ -12,7 +12,6 @@ import {
   sendClockResetNotification,
   sendVideoReminderNotification,
   sendDailyRewardReminder,
-  sendMiningStoppedNotification,
 } from "./services/notificationService.js";
 import { initializeFirebase } from "./config/firebase.js";
 
@@ -79,20 +78,12 @@ cron.schedule("0 0 * * *", async () => {
 
         console.log(`Reset user ${userId}: claimed=0, purchased=${purchasedHashpower}, total=${purchasedHashpower}, resetTime=${now.toISOString()}`);
 
-        // Send mining stopped notification
-        try {
-          await sendMiningStoppedNotification(userId);
-          console.log(`✅ Mining stopped notification sent to user ${userId}`);
-        } catch (notifErr) {
-          console.error(`❌ Failed to send mining stopped notification to user ${userId}:`, notifErr.message);
-        }
-
       } catch (userErr) {
         console.error(`Error resetting user ${miningDetail.user}:`, userErr);
       }
     }
 
-    console.log("Daily mining power reset completed successfully with notifications sent");
+    console.log("Daily mining power reset completed successfully");
 
   } catch (err) {
     console.error("Error in daily mining power reset cron job:", err);

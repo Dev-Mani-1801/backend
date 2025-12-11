@@ -55,13 +55,69 @@ router.get('/check/:user_id', async (req, res) => {
 });
 
 /**
+ * Send mining stopped notification
+ * POST /api/firebase_tokens/mining-stopped
+ * Body: { user_id: "userId" }
+ */
+router.post('/mining-stopped', async (req, res) => {
+  try {
+    const { user_id } = req.body;
+
+    if (!user_id) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'user_id is required' 
+      });
+    }
+
+    // Check if user has FCM token
+    const userToken = await FirebaseNotifications.findOne({ user_id });
+    
+    if (!userToken || !userToken.token) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'No FCM token found for this user. Please register a token first.',
+        user_id 
+      });
+    }
+
+    // Send mining stopped notification
+    const result = await sendMiningStoppedNotification(user_id);
+
+    if (result.success) {
+      res.status(200).json({
+        success: true,
+        message: 'Mining stopped notification sent successfully!',
+        user_id,
+        notification_sent: true
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        message: 'Failed to send mining stopped notification',
+        user_id,
+        reason: result.reason || result.error,
+        error_code: result.code
+      });
+    }
+  } catch (err) {
+    console.error('Error sending mining stopped notification:', err);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server Error',
+      error: err.message 
+    });
+  }
+});
+
+/**
  * Test endpoint - Send custom test notification
  * POST /api/firebase_tokens/test-notification
  * Body: { user_id: "userId", title?: "Custom Title", body?: "Custom Body" }
  * 
  * If title/body not provided, sends default "Mining Stopped" notification
  */
-router.post('/test-notification', async (req, res) => {
+router.post('/custom-notification', async (req, res) => {
   try {
     const { user_id, title, body } = req.body;
 
