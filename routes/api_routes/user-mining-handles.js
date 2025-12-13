@@ -197,13 +197,13 @@ router.get("/:userId", async (req, res) => {
     }
 
     // Cumulative loss tracking is no longer active
-    // if (mining_details.purchasedHashpower > 0) {
-    //   if (typeof mining_details.checkAndApplyDailyLoss === 'function') {
-    //     mining_details.checkAndApplyDailyLoss();
-    //     await mining_details.save();
-    //     console.log(`✅ Daily loss check completed for user ${userId}: cumulative_loss=${mining_details.lossTracking.cumulative_loss}%, daily_ads=${mining_details.lossTracking.daily_ads_watched}`);
-    //   }
-    // }
+    if (mining_details.purchasedHashpower > 0) {
+      if (typeof mining_details.checkAndApplyDailyLoss === 'function') {
+        mining_details.checkAndApplyDailyLoss();
+        await mining_details.save();
+        console.log(`✅ Daily loss check completed for user ${userId}: cumulative_loss=${mining_details.lossTracking.cumulative_loss}%, daily_ads=${mining_details.lossTracking.daily_ads_watched}`);
+      }
+    }
 
 // Use effective hashpower (cumulative loss applied)
 let effectiveHashpower = mining_details.hashpower;
