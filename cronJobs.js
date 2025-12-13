@@ -12,6 +12,7 @@ import {
   sendClockResetNotification,
   sendVideoReminderNotification,
   sendDailyRewardReminder,
+  sendMiningStoppedNotification,
 } from "./services/notificationService.js";
 import { initializeFirebase } from "./config/firebase.js";
 
@@ -25,9 +26,9 @@ const MONGO_URI = "mongodb+srv://growthdev1:Ji0LlqjCuFzlYP9s@cluster0.zgxt7d9.mo
 const BTC_PER_HASHPOWER_PER_SEC = 0.000000000001;
 const MAX_MINING_DURATION_MS = 24 * 60 * 60 * 1000;
 
-// Run at midnight server time: "0 0 * * *"\
+// Run at midnight UAE time (00:00:00 UAE): "0 0 * * *" with timezone
 cron.schedule("0 0 * * *", async () => {
-  console.log("Running daily mining power reset job at midnight...");
+  console.log("Running daily mining power reset job at midnight (UAE time)...");
 
   try {
     await mongoose.connect(MONGO_URI);
@@ -76,6 +77,14 @@ cron.schedule("0 0 * * *", async () => {
         // Delete daily reward claims so users can claim again
         await DailyFreeMiner.deleteMany({ userId });
 
+        // Send mining stopped notification
+        try {
+          await sendMiningStoppedNotification(userId);
+          console.log(`✅ Sent mining stopped notification to user ${userId}`);
+        } catch (notifyErr) {
+          console.error(`Error sending mining stopped notification to user ${userId}:`, notifyErr);
+        }
+
         console.log(`Reset user ${userId}: claimed=0, purchased=${purchasedHashpower}, total=${purchasedHashpower}, resetTime=${now.toISOString()}`);
 
       } catch (userErr) {
@@ -88,6 +97,8 @@ cron.schedule("0 0 * * *", async () => {
   } catch (err) {
     console.error("Error in daily mining power reset cron job:", err);
   }
+}, {
+  timezone: "Asia/Dubai"
 });
 
 // Check for expired mining sessions every 30 minutes

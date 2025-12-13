@@ -50,7 +50,36 @@ router.post('/:userId', async (req, res) => {
     const existingHashPower = userMining ? userMining.hashpower : 0;
 
     // Calculate updated hashpower (2x multiplier: users get double the purchased hashpower)
-    const hashpowerToAdd = plan.hashrate * 2;
+    let extraPercent = 0;
+    switch (plan._id?.toString()) {
+      case '6929dcb949e964d72c41fab1': 
+        extraPercent = 35; 
+        break;
+      case '692a89b9a6ff597e727676a5': 
+        extraPercent = 5;
+        break;
+      case '692a8aa5a6ff597e727676a8': 
+        extraPercent = 10; 
+        break;
+      case '692a8c32a6ff597e727676ab':
+        extraPercent = 15; 
+        break;
+      case '692aa830a6ff597e727676b5': 
+        extraPercent = 25; 
+        break;
+      case '692aa933a6ff597e727676b7': 
+        extraPercent = 40; 
+        break;
+      case '692aaa54a6ff597e727676b9': 
+        extraPercent = 45; 
+        break;
+      default:
+        extraPercent = 0;
+        break;
+    }
+    const baseHash = plan.hashrate * 2;
+    const extraHash = baseHash * (extraPercent / 100);
+    const hashpowerToAdd = baseHash + extraHash;
     const updatedHashPower = existingHashPower + hashpowerToAdd;
 
     console.log(`Hashpower update: ${existingHashPower} -> ${updatedHashPower}`);
