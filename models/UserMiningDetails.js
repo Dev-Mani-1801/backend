@@ -115,6 +115,9 @@ const UserMiningSchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
+// Add index on mining_isactive for efficient cron queries
+UserMiningSchema.index({ mining_isactive: 1 });
+
 // Method to reset daily video counter
 UserMiningSchema.methods.resetDailyVideoCounter = function() {
   this.dailyVideoRequirement.videosWatched = 0;

@@ -26,79 +26,132 @@ const MONGO_URI = "mongodb+srv://growthdev1:Ji0LlqjCuFzlYP9s@cluster0.zgxt7d9.mo
 const BTC_PER_HASHPOWER_PER_SEC = 0.000000000001;
 const MAX_MINING_DURATION_MS = 24 * 60 * 60 * 1000;
 
-// Run at midnight UAE time (00:00:00 UAE): "0 0 * * *" with timezone
-cron.schedule("0 0 * * *", async () => {
-  console.log("Running daily mining power reset job at midnight (UAE time)...");
+// Track last cron run time for time window checking
+let lastCronRunTime = new Date();
+
+// Helper function to stop mining for a user
+async function stopMiningForUser(miningDetail) {
+  const userId = miningDetail.user;
+  const purchasedHashpower = miningDetail.purchasedHashpower || 0;
+  const now = new Date();
+
+  try {
+    // Reset mining state
+    await UserMiningDetail.findOneAndUpdate(
+      { user: userId },
+      {
+        $set: {
+          claimedHashpower: 0, // Reset daily claimed power
+          hashpower: purchasedHashpower, // Total = purchased only (claimed reset to 0)
+          mining_isactive: false,
+          rewarded_ads_watched: 0,
+          thirty_gh_rewarded_ads_watched: 0,
+          random_ads_watched: 0,
+          lastResetTime: now, // Track when this reset occurred
+        },
+      }
+    );
+
+    // Delete daily reward claims so users can claim again
+    await DailyFreeMiner.deleteMany({ userId });
+
+    // Send notification (non-blocking - don't wait for it)
+    sendMiningStoppedNotification(userId)
+      .then(() => {
+        console.log(`✅ Sent mining stopped notification to user ${userId}`);
+      })
+      .catch((notifyErr) => {
+        console.error(`Error sending notification to user ${userId}:`, notifyErr);
+      });
+
+    console.log(`✅ Reset user ${userId} at their local midnight (offset: ${miningDetail.offset || 0})`);
+  } catch (err) {
+    console.error(`Error stopping mining for user ${userId}:`, err);
+    throw err;
+  }
+}
+
+// Run every 15 minutes - check for users at their local midnight (time window approach)
+cron.schedule("*/15 * * * *", async () => {
+  console.log("🕐 Checking for users at local midnight (time window check)...");
 
   try {
     await mongoose.connect(MONGO_URI);
 
-    // Get all active mining users
-    const allMiningDetails = await UserMiningDetail.find({ mining_isactive: true });
+    const nowUTC = new Date();
+    const previousRunTime = lastCronRunTime;
+    lastCronRunTime = nowUTC;
 
-    console.log(`Found ${allMiningDetails.length} active mining users to reset`);
+    // Get all active mining users (index on mining_isactive makes this fast)
+    const activeUsers = await UserMiningDetail.find({ 
+      mining_isactive: true 
+    }).lean(); // Use .lean() for better performance
 
-    for (const miningDetail of allMiningDetails) {
+    console.log(`Found ${activeUsers.length} active users to check (window: ${previousRunTime.toISOString()} to ${nowUTC.toISOString()})`);
+
+    let resetCount = 0;
+
+    for (const miningDetail of activeUsers) {
       try {
         const userId = miningDetail.user;
+        const userOffset = miningDetail.offset || 0; // minutes (negative for ahead of UTC)
 
-        // Check if user was reset in the last 24 hours
-        const now = new Date();
-        const lastResetTime = miningDetail.lastResetTime;
+        // Calculate user's midnight in UTC
+        // User's local midnight = UTC time - offset
+        // We need to find when user's local time was 00:00:00
 
-        if (lastResetTime) {
-          const hoursSinceLastReset = (now - lastResetTime) / (1000 * 60 * 60);
-
-          if (hoursSinceLastReset < 24) {
-            console.log(`Skipping user ${userId}: Last reset was ${hoursSinceLastReset.toFixed(2)} hours ago (< 24 hours)`);
-            continue; // Skip this user, they were already reset recently
-          }
-        }
-
-        // Use existing purchasedHashpower from database (set by purchase flow)
-        const purchasedHashpower = miningDetail.purchasedHashpower || 0;
-
-        // Reset only claimed hashpower, keep purchased, and update lastResetTime
-        await UserMiningDetail.findOneAndUpdate(
-          { user: userId },
-          {
-            $set: {
-              claimedHashpower: 0, // Reset daily claimed power
-              hashpower: purchasedHashpower, // Total = purchased only (claimed reset to 0)
-              mining_isactive: false,
-              rewarded_ads_watched: 0,
-              thirty_gh_rewarded_ads_watched: 0,
-              random_ads_watched: 0,
-              lastResetTime: now, // Track when this reset occurred
-            },
-          }
+        // Get today's date in user's local timezone
+        const userLocalNow = new Date(
+          nowUTC.getTime() - (userOffset * 60 * 1000)
         );
 
-        // Delete daily reward claims so users can claim again
-        await DailyFreeMiner.deleteMany({ userId });
+        // Calculate user's last midnight in their timezone
+        const userMidnightLocal = new Date(
+          userLocalNow.getFullYear(),
+          userLocalNow.getMonth(),
+          userLocalNow.getDate(),
+          0, 0, 0, 0
+        );
 
-        // Send mining stopped notification
-        try {
-          await sendMiningStoppedNotification(userId);
-          console.log(`✅ Sent mining stopped notification to user ${userId}`);
-        } catch (notifyErr) {
-          console.error(`Error sending mining stopped notification to user ${userId}:`, notifyErr);
+        // Convert user's midnight back to UTC
+        const userMidnightUTC = new Date(
+          userMidnightLocal.getTime() + (userOffset * 60 * 1000)
+        );
+
+        // Check if user's midnight occurred in the time window since last cron run
+        const midnightInWindow = 
+          userMidnightUTC > previousRunTime && 
+          userMidnightUTC <= nowUTC;
+
+        if (midnightInWindow) {
+          console.log(`🌙 User ${userId}'s midnight occurred at ${userMidnightUTC.toISOString()} (offset: ${userOffset})`);
+
+          // Check if we already reset this user today (prevent duplicate resets)
+          const lastReset = miningDetail.lastResetTime;
+          if (lastReset) {
+            const hoursSinceReset = (nowUTC - lastReset) / (1000 * 60 * 60);
+            if (hoursSinceReset < 23) { // Less than 23 hours ago
+              console.log(`⏭️ Skipping user ${userId} - already reset ${hoursSinceReset.toFixed(1)}h ago`);
+              continue;
+            }
+          }
+
+          // Stop mining for this user
+          await stopMiningForUser(miningDetail);
+          resetCount++;
         }
-
-        console.log(`Reset user ${userId}: claimed=0, purchased=${purchasedHashpower}, total=${purchasedHashpower}, resetTime=${now.toISOString()}`);
-
       } catch (userErr) {
-        console.error(`Error resetting user ${miningDetail.user}:`, userErr);
+        console.error(`Error processing user ${miningDetail.user}:`, userErr);
       }
     }
 
-    console.log("Daily mining power reset completed successfully");
+    console.log(`✅ Midnight check completed: ${resetCount} users reset`);
 
   } catch (err) {
-    console.error("Error in daily mining power reset cron job:", err);
+    console.error("Error in midnight check cron job:", err);
+    // Reset lastCronRunTime on error to avoid missing users
+    lastCronRunTime = new Date();
   }
-}, {
-  timezone: "Asia/Dubai"
 });
 
 // Check for expired mining sessions every 30 minutes
