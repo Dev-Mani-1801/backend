@@ -154,6 +154,71 @@ router.get("/referrals", async (req, res) => {
   }
 });
 
+// Get total referral rewards for a user
+router.get("/referrals/rewards/:userId", async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: "User ID is required",
+      });
+    }
+
+    const ReferralRewardHistory = (await import("../models/ReferralRewardHistory.js")).default;
+
+    // Get all processed rewards for this user as parent
+    const rewards = await ReferralRewardHistory.find({
+      parentUserId: userId,
+      status: 'processed'
+    }).lean();
+
+    // Calculate total reward amount
+    // Use high precision to handle very small amounts
+    let totalRewards = 0;
+    rewards.forEach(reward => {
+      // Decimal128 values need to be converted properly
+      const amountStr = reward.rewardAmount?.toString() || "0";
+      const amount = parseFloat(amountStr);
+      totalRewards += amount;
+    });
+
+    // Format with up to 16 decimal places to preserve precision for very small amounts
+    // If the value is less than 0.00000001, show more decimal places
+    let formattedTotal;
+    if (totalRewards < 0.00000001 && totalRewards > 0) {
+      // For very small amounts, use scientific notation or show more decimals
+      formattedTotal = totalRewards.toFixed(16).replace(/\.?0+$/, ''); // Remove trailing zeros
+    } else {
+      formattedTotal = totalRewards.toFixed(8).replace(/\.?0+$/, ''); // Standard 8 decimals, remove trailing zeros
+    }
+
+    console.log(`[Referral Rewards API] Total rewards for user ${userId}: ${totalRewards} (formatted: ${formattedTotal})`);
+
+    res.json({
+      success: true,
+      totalRewards: formattedTotal,
+      totalRewardsRaw: totalRewards, // Also include raw value for precision
+      rewardsCount: rewards.length,
+      rewards: rewards.map(r => ({
+        childUserId: r.childUserId,
+        rewardDate: r.rewardDate,
+        childDailyMining: r.childDailyMining?.toString() || "0",
+        rewardAmount: r.rewardAmount?.toString() || "0",
+        status: r.status
+      }))
+    });
+  } catch (error) {
+    console.error("Error fetching referral rewards:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch referral rewards",
+      error: error.message
+    });
+  }
+});
+
 
 router.use('/faqs', faqRoutes);
 router.use('/help', HelpRoutes);

@@ -5,6 +5,7 @@ import BalanceHistory from "../../models/BalanceHistory.js";
 import Balance from "../../models/Balance.js";
 import DailyRewardClaim from '../../models/DailyRewardClaim.js';
 import DailyFreeMiner from "../../models/DailyMiner.js";
+import { processReferralRewardForChild } from "../../services/referralRewardService.js";
 
 const router = express.Router();
 
@@ -314,6 +315,24 @@ if (typeof mining_details.getEffectiveHashpower === 'function') {
         },
         { upsert: true, new: true }
       );
+
+      // Process referral reward for parent (if child has a referralUsed)
+      // Process asynchronously to not block the API response
+      console.log(`[Referral Rewards] 🔄 Attempting to process referral reward for child ${userId}, BTC: ${calculated_btc}, date: ${yesterdayLocal}`);
+      processReferralRewardForChild(userId, calculated_btc, yesterdayLocal)
+        .then((result) => {
+          if (result && !result.alreadyProcessed) {
+            console.log(`[Referral Rewards] ✅ Successfully processed referral reward for child ${userId}:`, result);
+          } else if (result && result.alreadyProcessed) {
+            console.log(`[Referral Rewards] ⏭️ Reward already processed for child ${userId}`);
+          } else {
+            console.log(`[Referral Rewards] ℹ️ No reward to process for child ${userId} (no parent or no mining)`);
+          }
+        })
+        .catch((err) => {
+          console.error(`[Referral Rewards] ❌ Error processing referral reward for child ${userId}:`, err);
+          // Don't throw - this is non-blocking, error is logged
+        });
 
       await DailyRewardClaim.deleteMany({ userId });
 
