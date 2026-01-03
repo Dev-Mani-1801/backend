@@ -9,7 +9,7 @@ import { processReferralRewardForChild } from "../../services/referralRewardServ
 
 const router = express.Router();
 
-const BTC_PER_HASHPOWER_PER_SEC = 0.0000000000000001;
+const BTC_PER_HASHPOWER_PER_SEC = 0.0000000000000070;
 const MAX_MINING_DURATION_MS = 24 * 60 * 60 * 1000;
 // const MAX_MINING_DURATION_MS = 10 * 60 * 1000;
 
